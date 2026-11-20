@@ -1,0 +1,53 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# Node / UI
+node_modules/
+ui/dist/
+
+# Runtime data — databases, logs, conversation history, caches
+data/
+*.log
+*.db
+*.db-shm
+*.db-wal
+.cache/
+
+# Secrets and env
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.jks
+keystore*
+
+# Android
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/app/release/
+android/*.apk
+android/captures/
+*.hprof
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

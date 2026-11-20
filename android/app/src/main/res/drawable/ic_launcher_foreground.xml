@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Jarvis "J" icon -->
+    <path
+        android:fillColor="#00D4FF"
+        android:pathData="M54,20 L54,20 C55.1,20 56,20.9 56,22 L56,72 C56,80 50,86 42,86 L38,86 C36.9,86 36,85.1 36,84 L36,82 C36,80.9 36.9,80 38,80 L42,80 C46.4,80 50,76.4 50,72 L50,22 C50,20.9 50.9,20 52,20 Z"/>
+    <path
+        android:fillColor="#00D4FF"
+        android:pathData="M60,20 L68,20 C69.1,20 70,20.9 70,22 L70,24 C70,25.1 69.1,26 68,26 L60,26 C58.9,26 58,25.1 58,24 L58,22 C58,20.9 58.9,20 60,20 Z"/>
+</vector>
