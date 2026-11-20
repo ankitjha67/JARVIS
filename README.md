@@ -1,33 +1,325 @@
-# Jarvis
+<p align="center">
+  <img src="screenshots/jarvis-hud-main.jpg" alt="JARVIS HUD" width="800"/>
+</p>
 
-Personal desktop intelligence for one Windows machine: routes requests to local, NVIDIA and frontier models, and acts on the computer through tiered, audited tools — behind a HUD you can actually read.
+<h1 align="center">J.A.R.V.I.S.</h1>
+<p align="center">
+  <b>Personal AI Desktop Assistant for Windows</b><br/>
+  132 tools. 8 LLM providers. Voice control. One HUD.
+</p>
 
-- **Product:** [PRD.md](PRD.md)
-- **Engineering state, decisions, how to run:** [CONTEXT.md](CONTEXT.md)
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12"/>
+  <img src="https://img.shields.io/badge/react-19-61DAFB" alt="React 19"/>
+  <img src="https://img.shields.io/badge/kotlin-jetpack_compose-7F52FF" alt="Kotlin"/>
+  <img src="https://img.shields.io/badge/tools-132-green" alt="132 Tools"/>
+  <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License"/>
+</p>
 
-## Quick start
+---
 
-```powershell
-.\scripts\setup.ps1     # once: Python env, HUD build (all caches stay on E:)
-uv run jarvis           # core + HUD window
+JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 132 audited tools, and presents everything through a cinematic heads-up display you can control by voice or keyboard.
+
+Say it, see it happen, stay in control.
+
+## Screenshots
+
+| Main HUD | Console View | Repair Panel |
+|----------|-------------|--------------|
+| ![Main HUD](screenshots/jarvis-hud-main.jpg) | ![Console](screenshots/jarvis-hud-console.jpg) | ![Repair](screenshots/jarvis-repair-panel.jpg) |
+
+## Key Features
+
+### AI and Language Models
+- **8 LLM providers** out of the box: LM Studio, Ollama, NVIDIA NIM, Anthropic, OpenAI, Google Gemini, OpenRouter, and Groq
+- **Runtime model discovery** from each provider's model list, nothing hardcoded
+- **Automatic routing** with ordered preference lists and health-based fallback
+- **Privacy modes**: Local Only (all cloud blocked), Hybrid, or Cloud
+- **Model Ladder**: auto-escalation across 4 tiers (fast local, fast cloud, smart, premium) based on task complexity
+- **Streaming responses** with token-by-token output and model attribution
+
+### Computer Control (132 Tools across 36 modules)
+
+**Desktop and Windows**
+- Search and launch installed applications
+- List, focus, minimize, maximize, and close windows
+- UI Automation: snapshot any window's controls, click, type, press hotkeys
+- Lock, sleep, restart, shut down (with 30s cancellation window)
+
+**Files and Documents**
+- List, search, read, write, move, copy, and delete files
+- Create directories with nested paths
+- Extract text from PDF, DOCX, XLSX, CSV, PPTX, JSON, ZIP
+- Convert between formats (text to PDF, DOCX to TXT, XLSX to CSV)
+- Open files with their default application
+
+**Web and Browser**
+- Built-in browser powered by Playwright (Edge/Chrome)
+- Open pages, snapshot content, read text, click elements, fill forms
+- Tab management, navigation (back/forward/reload)
+- Chrome DevTools integration: list tabs, navigate, screenshot, run JS, click, type
+- Open URLs in the default browser
+
+**Communication**
+- Email: list, read, and send via IMAP/SMTP (Gmail, Outlook, Yahoo, iCloud presets)
+- Phone calls via Windows Phone Link
+- Telegram bot integration for remote messaging
+- Buffer integration for social media posting, scheduling, and analytics
+
+**Voice and Speech**
+- Global hotkey (Ctrl+Alt+J) summons and focuses the command bar
+- Wispr Flow dictation integration with auto-send after quiet period
+- Text-to-speech for spoken replies (toggle on/off)
+- Wake word detection ("Jarvis")
+- Built-in STT fallback via faster-whisper
+- Voice training and voiceprint recognition
+
+**Media and Entertainment**
+- System volume control (set, adjust, mute)
+- Media playback control (play/pause, next, previous, stop)
+- YouTube search, play, and transcript extraction
+- Screen capture with vision model analysis
+
+**Developer Tools**
+- Git status, log, and diff inspection
+- Error explanation with fix suggestions
+- Project scaffolding (Python, Node, React, FastAPI, Flask, Next.js, HTML)
+- Project analysis (language detection, dependencies, entry points)
+- Shell command execution (PowerShell, with timeout and output cap)
+
+**Smart Home**
+- Home Assistant integration: list devices, control lights/switches/climate
+- Get device states and trigger automations
+
+**Weather and Travel**
+- Current weather and 3-day forecast for any location
+- Flight tracking and status lookup
+
+**Memory and Knowledge**
+- Long-term memory: remember facts and preferences, recall by semantic search
+- Memory review and management
+- Content digests and summarization
+
+**AI Agents and Planning**
+- Create background sub-agents for parallel work
+- Multi-step plan creation with user review and approval
+- Agent handoff and status tracking
+- Deep research pipeline with 5-stage verification
+- Background task engine with SQLite checkpointing and crash recovery
+
+**Scheduling and Routines**
+- Create, list, and manage scheduled tasks
+- Built-in routines: morning briefing, end-of-day recap, health checks
+- Condition monitors with custom prompts
+- Proactive notifications (opt-in)
+
+**Security and Audit**
+- Security audit log with full action history
+- Taint tracking for untrusted content
+- Sensitive data redaction in logs
+- Credential management via Windows Credential Manager
+
+**Extensibility**
+- MCP (Model Context Protocol) server support
+- Browse and install MCP servers from a catalogue
+- Configuration presets for quick setup
+- Custom skills and macros
+
+### Heads-Up Display
+
+The HUD is built with React 19, TypeScript, and Zustand, rendered in a pywebview/WebView2 frameless window.
+
+- **System Vitals**: real-time CPU, RAM, GPU, VRAM, disk, network, and battery with 60-sample history graphs
+- **Core Visual**: animated particle radar that reflects agent state (idle, listening, thinking, acting, awaiting approval, error)
+- **Process Radar**: live scanning of running processes
+- **Event Stream**: real-time feed of system events and tool actions
+- **Transcript**: full conversation with streaming output and model tags
+- **Activity Panel**: every tool call with tier badge, arguments, duration, and outcome
+- **Approval Cards**: exact action details with Allow/Deny controls, keyboard operable
+- **3 Themes**: Ion (cyan), Holographic OS, Sovereign Executive
+- **Navigation**: Console, Audit, Repair, and Settings views
+
+### Android Companion App
+
+A Kotlin + Jetpack Compose mobile app that connects to your JARVIS instance over WebSocket.
+
+- Auto-reconnect with exponential backoff
+- Send commands and receive responses
+- Real-time status updates
+- Material 3 design
+
+### Safety Model
+
+Every tool has a risk tier:
+
+| Tier | Level | Behavior |
+|------|-------|----------|
+| T0 | Observe | Runs automatically, logged silently |
+| T1 | Reversible | Runs automatically, logged visibly |
+| T2 | Modify | Requires your approval before execution |
+| T3 | Destructive | Requires explicit click every time |
+
+Once a run reads untrusted content (a file, the clipboard, command output), every further action in that run needs approval regardless of tier. JARVIS never elevates privileges, never reads credential stores, and listens on loopback only.
+
+**Kill switch**: Ctrl+Alt+Backspace cancels every run and denies all pending approvals instantly.
+
+### Outcome Verification
+
+After tool execution, built-in verifiers confirm the action succeeded:
+- File write: checks the file exists and has the expected size
+- File delete: confirms the file is gone
+- Directory create: verifies the directory exists
+- Shell run: checks exit code
+- App launch: confirms the process is running
+- Browser open: verifies the page loaded
+
+### Undo Stack
+
+Destructive actions get auto-inferred reverse operations. The undo stack holds the last 50 reversible actions so you can roll back file writes, moves, copies, and clipboard changes.
+
+## Architecture
+
+```
+JARVIS
+|
+|-- Python 3.12 Backend (FastAPI + uvicorn)
+|   |-- WebSocket Gateway (loopback only, port 47821)
+|   |-- Orchestrator (agent loop, tool dispatch)
+|   |-- Provider Router (8 providers, health tracking, fallback)
+|   |-- Policy Engine (tier enforcement, taint tracking)
+|   |-- Tool Registry (132 tools, pydantic validation)
+|   |-- Background Task Engine (SQLite, checkpointing)
+|   |-- Deep Research Pipeline (5-stage with verification)
+|   |-- Routine Engine (scheduled proactive tasks)
+|   |-- Model Ladder (complexity-based auto-escalation)
+|   |-- Outcome Verifier (post-action confirmation)
+|   |-- Memory Store (SQLite with WAL mode)
+|   |-- Scheduler (cron-like task scheduling)
+|   +-- Self-Heal (automatic service recovery)
+|
+|-- React 19 HUD (TypeScript + Zustand)
+|   |-- pywebview / WebView2 frameless window
+|   |-- Real-time WebSocket connection
+|   |-- 3 cinematic themes
+|   +-- Responsive layout
+|
++-- Android App (Kotlin + Jetpack Compose)
+    |-- WebSocket client with auto-reconnect
+    +-- Material 3 UI
 ```
 
-Then add a provider in **Settings**: paste a cloud API key (stored in Windows Credential Manager), or start LM Studio's server (`lms server start`) and load a model.
+## Quick Start
+
+### Prerequisites
+- Windows 10/11
+- Python 3.12+ (via [uv](https://docs.astral.sh/uv/))
+- Node.js 18+ (for HUD development)
+- At least one LLM provider (LM Studio for local, or a cloud API key)
+
+### Installation
+
+```powershell
+# Clone the repository
+git clone https://github.com/ankitjha67/JARVIS.git
+cd JARVIS
+
+# Set up Python environment (all caches stay on E: drive)
+uv sync
+
+# Build the HUD
+npm --prefix ui install
+npm --prefix ui run build
+
+# Run JARVIS
+uv run jarvis
+```
+
+Then open **Settings** in the HUD and add a provider: paste a cloud API key (stored in Windows Credential Manager) or start LM Studio's server (`lms server start`) and load a model.
+
+### Hotkeys
 
 | Hotkey | Action |
-|---|---|
-| `Ctrl+Alt+J` | Summon Jarvis and focus the command bar (then dictate with Wispr Flow or type) |
-| `Ctrl+Alt+Backspace` | Kill switch: cancel every run and deny pending approvals |
+|--------|--------|
+| Ctrl+Alt+J | Summon JARVIS and focus the command bar |
+| Ctrl+Alt+Backspace | Kill switch: cancel all runs, deny pending approvals |
 
-## Safety model in one paragraph
-
-Every tool has a risk tier. Observing (T0) and easily reversible actions (T1) run automatically and are logged. Anything that changes data or runs code (T2) needs your approval; destructive or system-level actions (T3) need an explicit click every time. Once a run has read untrusted content — a file, the clipboard, command output — every further action in that run needs approval. Jarvis never elevates, never reads credential stores, and listens on loopback only.
-
-## Develop
+## Development
 
 ```powershell
-uv run pytest                 # core tests
+# Run tests
+uv run pytest
+
+# Lint
 uv run ruff check src tests
-npm --prefix ui run build     # type-check + build the HUD
+
+# Build HUD (type-check + bundle)
+npm --prefix ui run build
+
+# Run HUD in dev mode
+npm --prefix ui run dev
+
+# Run HUD tests
 npm --prefix ui test
 ```
+
+## Android Build
+
+```powershell
+cd android
+./gradlew assembleDebug
+# APK at android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Python 3.12, FastAPI, uvicorn, SQLite (WAL mode) |
+| Frontend | React 19, TypeScript, Zustand, Vite |
+| Desktop Shell | pywebview with WebView2 |
+| Android | Kotlin, Jetpack Compose, OkHttp WebSocket |
+| Browser Automation | Playwright (Edge/Chrome) |
+| Speech | Wispr Flow, faster-whisper, pyttsx3 |
+| Package Manager | uv (Python), npm (Node) |
+| Secrets | Windows Credential Manager via keyring |
+
+## Project Structure
+
+```
+JARVIS/
+|-- src/jarvis/           # Python backend
+|   |-- gateway.py        # Hub class, WebSocket server, lifecycle
+|   |-- orchestrator.py   # Agent loop, tool dispatch
+|   |-- providers/        # LLM provider implementations
+|   |-- tools/            # 132 tools across 36 modules
+|   |-- policy.py         # Tier enforcement, taint tracking
+|   |-- memory.py         # Long-term memory store
+|   |-- scheduler.py      # Task scheduling engine
+|   |-- background_tasks.py   # Background task engine
+|   |-- deep_research.py  # Research pipeline
+|   |-- routines.py       # Proactive routine engine
+|   |-- model_ladder.py   # Auto-escalation
+|   |-- outcome_verify.py # Post-action verification
+|   |-- confirmation.py   # Undo stack and confirmation gate
+|   +-- ...
+|-- ui/                   # React HUD
+|   |-- src/
+|   |   |-- App.tsx       # Main application
+|   |   |-- Hud.tsx       # HUD layout and core visual
+|   |   |-- Console.tsx   # Console view
+|   |   |-- store.ts      # Zustand state management
+|   |   +-- ...
+|   +-- vite.config.ts
+|-- android/              # Companion app
+|   +-- app/src/main/java/com/jarvis/app/
+|-- tests/                # Test suite
++-- screenshots/          # HUD screenshots
+```
+
+## Contributing
+
+This is a personal project, but contributions are welcome. Please open an issue first to discuss what you would like to change.
+
+## License
+
+MIT
