@@ -18,7 +18,7 @@
 
 ---
 
-JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 158 audited tools, and presents everything through a cinematic heads-up display you can control by voice or keyboard. Simple commands execute instantly through fast-path pattern matching without touching the LLM. New installs start with a guided onboarding wizard, and the assistant name, wake word, and branding are fully configurable.
+JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 164 audited tools, and presents everything through a cinematic heads-up display you can control by voice or keyboard. Simple commands execute instantly through fast-path pattern matching without touching the LLM. New installs start with a guided onboarding wizard, and the assistant name, wake word, and branding are fully configurable.
 
 Say it, see it happen, stay in control.
 
@@ -46,7 +46,7 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 - **Model Ladder**: auto-escalation across 4 tiers (fast local, fast cloud, smart, premium) based on task complexity
 - **Streaming responses** with token-by-token output and model attribution
 
-### Computer Control (156 Tools across 40 modules)
+### Computer Control (164 Tools across 46 modules)
 
 **Desktop and Windows**
 - Search and launch installed applications
@@ -227,7 +227,7 @@ JARVIS
 |   |-- Provider Router (8 providers, health tracking, fallback)
 |   |-- Policy Engine (tier enforcement, taint tracking)
 |   |-- Fast-Path Intent Matcher (instant commands)
-|   |-- Tool Registry (158 tools, pydantic validation)
+|   |-- Tool Registry (164 tools, pydantic validation)
 |   |-- Background Task Engine (SQLite, checkpointing)
 |   |-- Deep Research Pipeline (5-stage with verification)
 |   |-- Routine Engine (scheduled proactive tasks)
@@ -345,7 +345,7 @@ JARVIS/
 |   |-- gateway.py        # Hub class, WebSocket server, lifecycle
 |   |-- orchestrator.py   # Agent loop, tool dispatch
 |   |-- providers/        # LLM provider implementations
-|   |-- tools/            # 158 tools across 46 modules
+|   |-- tools/            # 164 tools across 46 modules
 |   |-- policy.py         # Tier enforcement, taint tracking
 |   |-- memory.py         # Long-term memory store
 |   |-- scheduler.py      # Task scheduling engine
