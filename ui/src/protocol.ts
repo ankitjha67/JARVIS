@@ -135,7 +135,27 @@ export interface AuditItem {
 export type ToolStatus = 'ok' | 'error' | 'denied' | 'refused' | 'cancelled';
 
 // ---- core → HUD -------------------------------------------------------------------------------
+export interface RunSummary {
+  id: string; name: string; goal: string; status: string; progress: number; error: string | null;
+}
+
+export interface RunDetail extends RunSummary {
+  steps: { id: number; description: string; status: string }[];
+  result: unknown;
+}
+export interface SavedWorkflow {
+  id: string; name: string; version: number;
+  inputs: { left: string; right: string; keys: string[]; left_sheet: string | null; right_sheet: string | null; metric?: string | null; export_workbook?: boolean };
+}
+export interface RunPage {
+  tasks: RunSummary[]; saved: SavedWorkflow[];
+  schedules: { id: string; name: string; schedule: string; status: string; next_run_at: string | null }[];
+  detail: RunDetail | null;
+  result: Record<string, unknown> | null; error: string | null;
+}
+
 export type ServerMessage =
+  | ({ type: 'runs.page'; poll: boolean } & RunPage)
   | {
       type: 'ready';
       v: number;
@@ -179,10 +199,22 @@ export type ServerMessage =
   | { type: 'clipboard.new'; id: number; text: string; app: string }
   | { type: 'screen.capture'; text: string; app: string }
   | { type: 'telegram.message'; chat_id: string; text: string }
-  | { type: 'ha.state'; entity_id: string; state: string; [k: string]: unknown };
+  | { type: 'ha.state'; entity_id: string; state: string; [k: string]: unknown }
+  | { type: 'bg_task.update'; task_id: string; status: string; progress: number; name: string }
+  | { type: 'bg_task.step'; [k: string]: unknown }
+  | { type: 'research.progress'; [k: string]: unknown }
+  | { type: 'research.done'; [k: string]: unknown }
+  | { type: 'routine.fire'; [k: string]: unknown }
+  | { type: 'routine.result'; [k: string]: unknown }
+  | { type: 'undo.pushed'; [k: string]: unknown }
+  | { type: 'verify.result'; [k: string]: unknown }
+  | { type: 'ladder.stats'; [k: string]: unknown };
 
 // ---- HUD → core -------------------------------------------------------------------------------
 export type ClientMessage =
+  | { type: 'runs.action'; action: 'list' | 'detail' | 'cancel' | 'reconcile' | 'save' | 'run' | 'schedule' | 'test'
+      | 'health' | 'pause_schedule' | 'resume_schedule' | 'handover' | 'revise';
+      id?: string; name?: string; schedule?: string; inputs?: Record<string, unknown>; poll?: boolean }
   | { type: 'hello'; token: string; v: number }
   | { type: 'user.message'; text: string }
   | { type: 'run.cancel' }

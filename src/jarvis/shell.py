@@ -56,6 +56,8 @@ def force_foreground() -> bool:
 
 def run_window(url: str, window_ref: dict[str, Any]) -> None:
     """Blocks on the main thread until the window is closed."""
+    # WebView2 opens a native Save As dialog for report downloads.
+    webview.settings["ALLOW_DOWNLOADS"] = True
     window = webview.create_window(
         "Jarvis", url, width=1280, height=800, min_size=(1100, 680),
         frameless=True, easy_drag=False, background_color="#05080D", text_select=True,

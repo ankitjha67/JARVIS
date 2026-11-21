@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import type {
-  AgentState, ApprovalRequest, AuditItem, CalibrationItem, Fault, Integrations, ProviderStatus, Recovery, ServerMessage, Settings, Telemetry, Tier, ToolStatus, VoiceTraining,
+  AgentState, ApprovalRequest, AuditItem, CalibrationItem, Fault, Integrations, ProviderStatus, Recovery, RunPage, ServerMessage, Settings, Telemetry, Tier, ToolStatus, VoiceTraining,
 } from './protocol';
 
-export type View = 'console' | 'audit' | 'repair' | 'settings';
+export type View = 'console' | 'audit' | 'repair' | 'settings' | 'runs';
 export type Conn = 'connecting' | 'online' | 'offline' | 'rejected';
 
 export type TranscriptItem =
@@ -58,6 +58,7 @@ export interface HudState {
   transcript: TranscriptItem[];
   activity: ToolRow[];
   approvals: ApprovalRequest[];
+  runs: RunPage | null;
   telemetry: Telemetry | null;
   series: { cpu: number[]; ram: number[]; gpu: number[]; down: number[]; up: number[] };
   audit: { items: AuditItem[]; hasMore: boolean; loading: boolean; loaded: boolean };
@@ -106,6 +107,12 @@ function providerEvents(s: HudState, next: ProviderStatus[]): StreamEvent[] {
 /** Pure reducer for every server message. Exported for tests. */
 export function reduce(s: HudState, m: ServerMessage): Partial<HudState> {
   switch (m.type) {
+    case 'runs.page':
+      return { runs: {
+        tasks: m.tasks, saved: m.saved, schedules: m.schedules, detail: m.detail ?? s.runs?.detail ?? null,
+        result: m.poll ? s.runs?.result ?? null : m.result,
+        error: m.error ?? (m.poll ? s.runs?.error ?? null : null),
+      } };
     case 'ready':
       return {
         version: m.version, hasWindow: m.has_window, hotkeys: m.hotkeys, agent: m.state, busy: m.busy,
@@ -300,7 +307,7 @@ export const initialState = {
   conn: 'connecting' as Conn, attempt: 0, version: '', hasWindow: false,
   hotkeys: { summon: 'Ctrl+Alt+J', kill: 'Ctrl+Alt+Backspace' },
   view: 'console' as View, agent: 'idle' as AgentState, agentDetail: '', busy: false, settings: null, providers: [],
-  transcript: [], activity: [], approvals: [], telemetry: null,
+  transcript: [], activity: [], approvals: [], telemetry: null, runs: null,
   series: { cpu: [], ram: [], gpu: [], down: [], up: [] },
   audit: { items: [], hasMore: false, loading: false, loaded: false }, focusTick: 0, lastSpoken: null, pulse: 0,
   events: [] as StreamEvent[],

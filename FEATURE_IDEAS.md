@@ -177,3 +177,77 @@ Cloud speech-to-text and the owner-trained wake word were the research's first t
 - https://manual.raycast.com/ai/ai-extensions
 - https://support.microsoft.com/en-us/windows/retrace-your-steps-with-recall-aa03f8a0-a78b-4b3e-b0a1-2eb8ac48701c
 - https://blogs.windows.com/windowsexperience/2025/10/16/making-every-windows-11-pc-an-ai-pc/
+
+## Roadmap extension — 20 November 2026
+
+The numbered list above is the historical backlog. The current checkout contains modules for memory, skills, background tasks, research, vision, outcome verification, and Home Assistant, alongside the HUD and Android companion. This extension treats those as starting points. It is based on a repository and documentation review. Feature status here is an assessment of the visible code, and the proposals have not been tested end to end.
+
+### Research benchmarks
+
+| Product | Documented pattern | Application to Jarvis |
+|---|---|---|
+| [Hermes Agent](https://hermes-agent.nousresearch.com/docs) | Reusable skills, specialist bots, and recurring jobs | Give each saved Jarvis workflow a version, test cases, and a history of results. |
+| [OpenClaw](https://docs.openclaw.ai/start/openclaw) and [ChatGPT Scheduled Tasks](https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt) | Proactive checks with delivery controls, and monitoring that can retain context or stop on a condition | Show what changed, collapse duplicate alerts, and give each monitor a stopping rule. |
+| [Power Automate Desktop](https://learn.microsoft.com/en-us/power-automate/desktop-flows/run-unattended-desktop-flows) | Unattended runs have explicit Windows session and device constraints | Route workflows based on whether the desktop is available, locked, or asleep. |
+| [Temporal](https://docs.temporal.io/durable-execution) | Durable execution records activity and results to resume after failure | Build on the SQLite task engine and verify uncertain outcomes before retrying external changes. |
+| [n8n](https://docs.n8n.io/advanced-ai/evaluations/overview/) | Test datasets catch regressions and compare model and prompt performance | Replay known Jarvis commands against candidate workflows and models. |
+
+### P0 — Make everyday actions dependable
+
+| ID | Feature | Example or first usable release |
+|---|---|---|
+| 85 | Run Center | See running, waiting, paused, and failed jobs in one HUD view. Each job shows the last confirmed step, next action, and any approval needed. |
+| 86 | Turn a run into a workflow | Save a successful run with editable inputs such as folder, report date, and output name. Preview a version before publishing or scheduling it. |
+| 87 | Safe resume after an interruption | Keep a receipt for each external change. If Jarvis crashes after submitting a form, check for the receipt before retrying. Ask for review if the result is uncertain. |
+| 88 | Action previews with stale-target checks | Show exact files, recipients, or settings before approval. If the target changes while approval is pending, refresh the preview and request a new decision. |
+| 89 | Workflow Test Lab | Replay saved examples on sample files and simulated connectors. Compare outcome accuracy, latency, cost, and approval behavior across model or skill versions. |
+| 90 | Desktop readiness and wake recovery | Distinguish workflows that need an unlocked desktop from those that can run in the background. Let the user choose whether missed runs should catch up, expire, or wait. |
+| 91 | Per-workflow model and privacy budgets | Set a maximum cloud spend, runtime, and allowed input types. Show the reason when a budget or privacy rule pauses a run. |
+
+### P1 — Make Jarvis useful every day
+
+| ID | Feature | Example or first usable release |
+|---|---|---|
+| 92 | Change inbox | Combine alerts from existing monitors, with old and new values, evidence, mute rules, and a stop date. Group several updates to the same item. |
+| 93 | Project rooms | Pin folders, conversations, reference documents, saved workflows, and permissions to a project. Switch among Jarvis development, personal admin, and credit risk with their own context. |
+| 94 | Memory with source and expiry | Show where a memory came from, when it was last verified, and which project can use it. Surface conflicts when a newer source disagrees. |
+| 95 | Workflow health checks | Flag renamed browser fields, lost connector access, or changed spreadsheet columns. Propose a repair that the user can test and approve. |
+| 96 | Evidence packs | Export a report with claim-to-source links, document page references, retrieval timestamps, and an inventory of input files. |
+| 97 | Approval handoff to Android | Resume a waiting task from a paired phone with the same action preview and an expiring approval. Requires an authenticated transport design that preserves the desktop gateway's loopback binding. |
+| 98 | Windows Explorer actions | Send selected files straight to Jarvis for a specific workflow such as compare, extract tables, summarize, or package for review. |
+| 99 | Hinglish command test pack | Test real mixes of Hindi and English, tricky Indian names, dates, and amounts against the existing speech stack. Confirm the interpreted recipient or amount before consequential actions. |
+| 100 | Shift-long handover | On demand, show what changed since the last review, which tasks are blocked, and exactly where to resume each one. Generate it from run state and audit events. |
+
+### P2 — Ship workflows with clear outputs
+
+| ID | Feature | Example or first usable release |
+|---|---|---|
+| 101 | Regulatory change desk | Compare two versions of an RBI, PRA, or Basel document. Produce a clause-level change register and a draft mapping to controls, policies, and implementation owners. |
+| 102 | Excel reconciliation workbench | Compare two RWA or portfolio extracts using selected business keys. Export breaks, unmatched rows, source row references, and a variance waterfall. |
+| 103 | Requirements-to-UAT tracker | Link PRD or BRD requirements to functional specs, test cases, and evidence. Flag untested requirements and tests affected by a document change. |
+| 104 | Document intake with exception review | Pull invoice, property, or banking document fields into a tracker. Show the source page for each value and queue ambiguous or duplicate entries for review. |
+| 105 | Pre-market research brief | Combine sourced exchange notices, overnight headlines, and watchlist changes into a time-stamped brief. Group duplicate stories and flag stale feeds. |
+| 106 | Research report refresh | Rerun a saved research question with new sources. Highlight which claims changed, which citations disappeared, and what still needs checking. |
+| 107 | Local AI operations dashboard | Compare success rate, latency, VRAM, and cost by task type across NVIDIA NIM, LM Studio, Ollama, and other configured providers. Use the results to tune existing routing. |
+| 108 | Personal admin case files | Track a deposit refund, service complaint, or home-loan disbursement with its deadline, evidence, correspondence drafts, and next action. |
+
+### Suggested first release
+
+Start with **Run Center → save a run as a workflow → replay it in the Test Lab**. Use one read-only workbook comparison as the first workflow. The release is usable when the same workflow can run from the HUD and a schedule, survive a restart, and produce an output that links back to the input rows. Add consequential external actions after the stale-target checks and safe-resume behavior are verified.
+
+### Implementation status
+
+| IDs | Status in this checkout |
+|---|---|
+| 85 | First release integrated. The HUD Runs view shows background job status, steps, results, cancellation, and a link to pending approvals. |
+| 86 | Partial. Completed reconciliation runs can be saved, revised as separate versions, and scheduled. Generic run capture is pending. |
+| 87 | Partial. Interrupted local comparisons restart from persisted inputs, and retried schedule occurrences reuse the same run ID. External action receipts and reconciliation are pending. |
+| 88 | Partial. Supported file writes, moves, and deletes recheck the target after interactive approval and refuse stale approvals. Browser, account, and recipient targets are pending. |
+| 89, 95 | Partial. The comparison uses a deterministic sample fixture and checks saved input files, sheets, and business keys. Cross-model evaluation, connector drift, and repair proposals are pending. |
+| 100 | Partial. On-demand handover shows recent actions since the last review and current open runs. Step-specific resume guidance is pending. |
+| 101 | Partial. The regulatory comparison tool produces a paginated change register with page or line evidence and optional mappings from a supplied control CSV. Source monitoring and review workflow are pending. |
+| 102 | Integrated. Compare CSV and XLSX extracts, download all breaks and cell differences with source rows, and chart an optional numeric metric in a variance waterfall. XLSX requires openpyxl. |
+| 103 | Partial. UAT traceability links local requirement and test registers, flags uncovered requirements and orphan tests, and identifies linked tests for changed requirements. Direct BRD extraction and a review HUD are pending. |
+| 104 | Partial. Document intake extracts configured labels from local files, cites pages or lines, and flags missing, ambiguous, or duplicate values. Tracker persistence and scanned-document handling are pending. |
+| 108 | Integrated through the Console. Create and update local case files with deadlines, next actions, evidence references, drafts, and revision checks. |
+| 90–94, 96–99, 105–107 | Pending as described. Existing approvals, scheduler, memory, research, Android companion, and provider benchmarks cover parts of this scope. |

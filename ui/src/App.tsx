@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { ClipboardList, Minus, Settings as Cog, Square, TerminalSquare, WifiOff, Wrench, X } from 'lucide-react';
+import { ClipboardList, ListChecks, Minus, Settings as Cog, Square, TerminalSquare, WifiOff, Wrench, X } from 'lucide-react';
 import { AuditView } from './Audit';
 import { Console } from './Console';
 import { Backdrop, Scramble } from './Hud';
 import type { AgentState } from './protocol';
 import { RepairView } from './Repair';
+import { RunsView } from './Runs';
 import { SettingsView } from './Settings';
 import { send } from './socket';
 import { useHud, type View } from './store';
@@ -19,6 +20,7 @@ const NAV: { id: View; label: string; icon: typeof Cog; key: string }[] = [
   { id: 'audit', label: 'Audit', icon: ClipboardList, key: '2' },
   { id: 'repair', label: 'Repair', icon: Wrench, key: '3' },
   { id: 'settings', label: 'Settings', icon: Cog, key: '4' },
+  { id: 'runs', label: 'Runs', icon: ListChecks, key: '5' },
 ];
 
 function TitleBar() {
@@ -137,7 +139,7 @@ export function App() {
       <div className="body">
         <Rail />
         <div id="view-root" className="view-root" tabIndex={-1}>
-          {view === 'console' ? <Console /> : view === 'audit' ? <AuditView /> : view === 'repair' ? <RepairView /> : <SettingsView />}
+          {view === 'console' ? <Console /> : view === 'audit' ? <AuditView /> : view === 'repair' ? <RepairView /> : view === 'runs' ? <RunsView /> : <SettingsView />}
         </div>
       </div>
     </div>

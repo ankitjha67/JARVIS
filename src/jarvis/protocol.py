@@ -99,9 +99,20 @@ class WindowControl(_Client):
     action: Literal["minimize", "toggle_maximize", "close"]
 
 
+class RunCenter(_Client):
+    type: Literal["runs.action"]
+    action: Literal["list", "detail", "cancel", "reconcile", "save", "run", "schedule", "test",
+                    "health", "pause_schedule", "resume_schedule", "handover", "revise"]
+    id: str = Field("", max_length=64)
+    name: str = Field("", max_length=100)
+    schedule: str = Field("", max_length=60)
+    inputs: dict[str, Any] = Field(default_factory=dict)
+    poll: bool = False
+
+
 ClientMessage = Annotated[
     Hello | UserMessage | RunCancel | ApprovalRespond | ConversationNew | SettingsSet | SecretSet
-    | ProvidersRefresh | AuditQuery | WindowControl | WakeCalibrate | VoiceTrain | VoicePreview | SelfHeal | ClientError,
+    | ProvidersRefresh | AuditQuery | WindowControl | WakeCalibrate | VoiceTrain | VoicePreview | SelfHeal | ClientError | RunCenter,
     Field(discriminator="type"),
 ]
 client_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
@@ -109,7 +120,7 @@ client_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
 CLIENT_TYPES = frozenset({
     "hello", "user.message", "run.cancel", "approval.respond", "conversation.new", "settings.set", "secret.set",
     "providers.refresh", "audit.query", "window.control", "wake.calibrate", "voice.train", "voice.preview",
-    "selfheal.action", "client.error",
+    "selfheal.action", "client.error", "runs.action",
 })
 
 SERVER_TYPES = frozenset({
@@ -120,7 +131,7 @@ SERVER_TYPES = frozenset({
     "memory.update", "schedule.fire", "agent.update", "clipboard.new", "screen.capture",
     "telegram.message", "ha.state",
     "bg_task.update", "bg_task.step", "research.progress", "research.done",
-    "routine.fire", "routine.result", "undo.pushed", "verify.result", "ladder.stats",
+    "runs.page", "routine.fire", "routine.result", "undo.pushed", "verify.result", "ladder.stats",
 })
 
 AgentState = Literal["idle", "thinking", "acting", "awaiting_approval", "error"]

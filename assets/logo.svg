@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <radialGradient id="core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#0088cc" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#003366" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0a1628"/>
+      <stop offset="100%" stop-color="#050d1a"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glow-strong">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="250" fill="url(#bg)" stroke="#0088cc" stroke-width="2" stroke-opacity="0.3"/>
+
+  <!-- Outer ring -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-opacity="0.2"/>
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#00d4ff" stroke-width="1" stroke-opacity="0.15"/>
+
+  <!-- Arc segments -->
+  <g filter="url(#glow)" opacity="0.7">
+    <path d="M 256 56 A 200 200 0 0 1 436 196" fill="none" stroke="#00d4ff" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 456 256 A 200 200 0 0 1 376 426" fill="none" stroke="#00d4ff" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 256 456 A 200 200 0 0 1 76 316" fill="none" stroke="#00d4ff" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 56 256 A 200 200 0 0 1 136 86" fill="none" stroke="#00d4ff" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- Radar lines -->
+  <g stroke="#00d4ff" stroke-opacity="0.1" stroke-width="0.5">
+    <line x1="256" y1="56" x2="256" y2="456"/>
+    <line x1="56" y1="256" x2="456" y2="256"/>
+    <line x1="115" y1="115" x2="397" y2="397"/>
+    <line x1="397" y1="115" x2="115" y2="397"/>
+  </g>
+
+  <!-- Inner rings -->
+  <circle cx="256" cy="256" r="140" fill="none" stroke="#00d4ff" stroke-width="0.5" stroke-opacity="0.15"/>
+  <circle cx="256" cy="256" r="80" fill="none" stroke="#00d4ff" stroke-width="0.5" stroke-opacity="0.15"/>
+
+  <!-- Core glow -->
+  <circle cx="256" cy="256" r="100" fill="url(#core)" filter="url(#glow-strong)"/>
+
+  <!-- Central eye / reactor -->
+  <g filter="url(#glow)">
+    <circle cx="256" cy="256" r="35" fill="#001830" stroke="#00d4ff" stroke-width="2"/>
+    <circle cx="256" cy="256" r="20" fill="#003060" stroke="#00f0ff" stroke-width="1.5"/>
+    <circle cx="256" cy="256" r="8" fill="#00f0ff"/>
+  </g>
+
+  <!-- Corner node dots -->
+  <g fill="#00d4ff" filter="url(#glow)">
+    <circle cx="256" cy="56" r="4"/>
+    <circle cx="456" cy="256" r="4"/>
+    <circle cx="256" cy="456" r="4"/>
+    <circle cx="56" cy="256" r="4"/>
+    <circle cx="397" cy="115" r="3"/>
+    <circle cx="397" cy="397" r="3"/>
+    <circle cx="115" cy="397" r="3"/>
+    <circle cx="115" cy="115" r="3"/>
+  </g>
+
+  <!-- JARVIS text -->
+  <text x="256" y="380" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="700"
+        font-size="52" letter-spacing="12" fill="#00d4ff" filter="url(#glow)">JARVIS</text>
+</svg>

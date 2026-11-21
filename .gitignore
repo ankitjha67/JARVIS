@@ -51,3 +51,8 @@ android/captures/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Temporary assets
+stitch_assets/
+stitch_*.zip
+scripts/

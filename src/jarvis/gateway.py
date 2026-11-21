@@ -15,11 +15,12 @@ from typing import Any
 
 import psutil
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-from . import __version__, ack, mcp_oauth, protocol, secrets, selfheal, speech, telemetry, voice_training
+from . import __version__, ack, mcp_oauth, protocol, secrets, selfheal, speech, telemetry, voice_training, workflows
 from . import wake as wake_mod
 from .agents import AgentManager, PlanManager
 from .background_tasks import BackgroundTaskEngine, TaskRunner
@@ -45,6 +46,7 @@ from .model_ladder import ModelLadder
 from .outcome_verify import OutcomeVerifier
 from .scheduler import Scheduler
 from .skills import SkillRegistry
+from .timers import TimerManager
 from .mcp_client import McpManager
 from .orchestrator import Orchestrator
 from .policy import normalise_web_url
@@ -253,10 +255,12 @@ class Hub:
         self.skills = SkillRegistry(DATA_DIR / "skills")
         self.agents = AgentManager()
         self.plans = PlanManager()
+        self.timers = TimerManager(DATA_DIR / "reminders.db", on_fire=self._on_timer_fire)
 
         # Mark-LVII systems
         self.bg_engine = BackgroundTaskEngine(DATA_DIR / "bg_tasks.db")
         self.bg_runner = TaskRunner(self.bg_engine, on_update=self._on_bg_update)
+        self.bg_runner.register_runner(workflows.WORKFLOW_GOAL, workflows.run_task)
         self.undo_stack = UndoStack()
         self.confirm_gate = ConfirmationGate()
         self.ladder = ModelLadder()
@@ -298,6 +302,7 @@ class Hub:
         self._apply_wake(settings)
 
         self.clipboard.start()
+        self.timers.start()
         self._tasks.append(asyncio.create_task(self.scheduler.run_loop()))
         self._tasks.append(asyncio.create_task(self.bg_runner.run_loop()))
         self._init_routines()
@@ -331,6 +336,18 @@ class Hub:
             broadcast_fn=self.broadcast,
         )
         self.routines.register_handlers()
+        self.routines.register(workflows.ROUTINE_TYPE, self._run_scheduled_reconciliation)
+
+    async def _run_scheduled_reconciliation(self, payload: dict[str, Any]) -> dict[str, str]:
+        run_id = await asyncio.to_thread(workflows.enqueue_scheduled, self.bg_engine, payload)
+        return {"run_id": run_id, "summary": f"Queued reconciliation {run_id}."}
+
+    def _on_timer_fire(self, kind: str, message: str) -> None:
+        if self.loop and self.loop.is_running():
+            asyncio.run_coroutine_threadsafe(
+                self.broadcast(msg("notice", level="info", message=f"[{kind}] {message}")),
+                self.loop,
+            )
 
     async def _on_bg_update(self, task_id: str, task: dict[str, Any]) -> None:
         await self.broadcast(msg("bg_task.update", task_id=task_id, status=task.get("status"),
@@ -391,9 +408,8 @@ class Hub:
     async def stop(self) -> None:
         await self.orchestrator.cancel("Jarvis is shutting down.")
         logging.getLogger().removeHandler(self._fault_handler)
-        self.bg_runner.stop()
-        self.bg_engine.close()
         self.clipboard.stop()
+        self.timers.close()
         if self.telegram:
             await self.telegram.stop()
         for t in self._tasks:
@@ -401,6 +417,9 @@ class Hub:
         for t in self._tasks:
             with suppress(asyncio.CancelledError):
                 await t
+        await self.bg_runner.stop()
+        self.bg_engine.close()
+        self.scheduler.close()
         await asyncio.to_thread(self.wake.stop)
         await self.mcp.aclose()
         await browser_tools.shutdown()
@@ -709,6 +728,26 @@ class Hub:
 
     # -- message dispatch -----------------------------------------------------------------------
 
+    async def _run_center(self, ws: WebSocket, request: protocol.RunCenter) -> None:
+        detail = None
+        result = None
+        error = None
+        try:
+            if request.action == "cancel":
+                if not await self.bg_runner.cancel(request.id):
+                    raise ValueError("This run can no longer be cancelled.")
+            else:
+                detail, result = await asyncio.to_thread(
+                    workflows.handle_request, request, self.bg_engine, self.store, self.scheduler
+                )
+        except (ValueError, OSError) as exc:
+            error = str(exc)
+        tasks = await asyncio.to_thread(self.bg_engine.list_tasks)
+        saved = await asyncio.to_thread(self.store.kv, workflows.SAVED_KEY)
+        schedules = await asyncio.to_thread(self.scheduler.list_routines, workflows.ROUTINE_TYPE)
+        await ws.send_json(msg("runs.page", tasks=tasks, saved=list(saved.values()), schedules=schedules,
+                               detail=detail, result=result, error=error, poll=request.poll))
+
     async def handle(self, ws: WebSocket, m: Any) -> None:
         orch = self.orchestrator
         match m:
@@ -721,6 +760,8 @@ class Hub:
                 if not orch.resolve_approval(m.approval_id, m.decision, m.remember):
                     await ws.send_text(json.dumps(msg("error", message="That approval has already been resolved.",
                                                       code="stale_approval")))
+            case protocol.RunCenter():
+                await self._run_center(ws, m)
             case protocol.ConversationNew():
                 await orch.new_conversation()
             case protocol.SettingsSet():
@@ -825,9 +866,30 @@ def create_app(hub: Hub, port: int = PORT) -> FastAPI:
 
     app = FastAPI(title="Jarvis core", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 
+    if DEV:
+        app.add_middleware(CORSMiddleware, allow_origins=sorted(DEV_ORIGINS),
+                           allow_methods=["GET"], allow_headers=["Authorization"])
+
     @app.get("/api/health")
     async def health() -> JSONResponse:
         return JSONResponse({"ok": True, "version": __version__})
+
+    @app.get("/api/runs/{task_id}/workbook")
+    async def run_workbook(task_id: str, request: Request) -> Response:
+        host = request.headers.get("host", "")
+        auth = request.headers.get("authorization", "")
+        if host not in allowed_hosts(port) or not hmac.compare_digest(
+            auth.encode(), f"Bearer {hub.token}".encode(),
+        ):
+            return Response(status_code=403)
+        if not re.fullmatch(r"[a-f0-9]{16}|[a-f0-9]{32}", task_id):
+            return Response(status_code=404)
+        workbook = await asyncio.to_thread(hub.bg_engine.get_workbook, task_id)
+        if workbook is None:
+            return Response(status_code=404)
+        return Response(workbook, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+                                 "Content-Disposition": f'attachment; filename="reconciliation-{task_id}.xlsx"'})
 
     @app.get("/api/pair")
     async def pair(request: Request) -> JSONResponse:

@@ -651,3 +651,10 @@ input:disabled { opacity: 0.5; }
 .tier--1 { color: var(--ion); border-color: var(--ion); }
 .tier--2 { color: var(--amber); border-color: var(--amber); }
 .tier--3 { color: var(--danger); border-color: var(--danger); }
+.run-center { padding: 1.25rem; max-width: 76rem; height: 100%; overflow: auto; }
+.run-center section { margin-block: 1.5rem; }
+.run-center form, .run-center__row { display: flex; flex-wrap: wrap; gap: .65rem; align-items: end; margin-block: .6rem; }
+.run-center label { display: grid; gap: .25rem; }
+.run-center input, .run-center button { border: 1px solid currentColor; padding: .4rem .6rem; color: inherit; background: transparent; }
+.run-center button:disabled { opacity: .5; }
+.run-center pre { overflow: auto; max-height: 24rem; white-space: pre-wrap; }

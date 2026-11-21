@@ -1,24 +1,24 @@
 <p align="center">
-  <img src="screenshots/jarvis-hud-main.jpg" alt="JARVIS HUD" width="800"/>
+  <img src="assets/logo.svg" alt="JARVIS Logo" width="200"/>
 </p>
 
 <h1 align="center">J.A.R.V.I.S.</h1>
 <p align="center">
   <b>Personal AI Desktop Assistant for Windows</b><br/>
-  132 tools. 8 LLM providers. Voice control. One HUD.
+  158 tools. 8 LLM providers. Voice control. One HUD.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12"/>
   <img src="https://img.shields.io/badge/react-19-61DAFB" alt="React 19"/>
   <img src="https://img.shields.io/badge/kotlin-jetpack_compose-7F52FF" alt="Kotlin"/>
-  <img src="https://img.shields.io/badge/tools-132-green" alt="132 Tools"/>
+  <img src="https://img.shields.io/badge/tools-158-green" alt="158 Tools"/>
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License"/>
 </p>
 
 ---
 
-JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 132 audited tools, and presents everything through a cinematic heads-up display you can control by voice or keyboard.
+JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 158 audited tools, and presents everything through a cinematic heads-up display you can control by voice or keyboard. Simple commands execute instantly through fast-path pattern matching without touching the LLM.
 
 Say it, see it happen, stay in control.
 
@@ -38,7 +38,7 @@ Say it, see it happen, stay in control.
 - **Model Ladder**: auto-escalation across 4 tiers (fast local, fast cloud, smart, premium) based on task complexity
 - **Streaming responses** with token-by-token output and model attribution
 
-### Computer Control (132 Tools across 36 modules)
+### Computer Control (156 Tools across 40 modules)
 
 **Desktop and Windows**
 - Search and launch installed applications
@@ -92,8 +92,34 @@ Say it, see it happen, stay in control.
 - Get device states and trigger automations
 
 **Weather and Travel**
-- Current weather and 3-day forecast for any location
+- Current weather and 3-day forecast with auto-detected location
 - Flight tracking and status lookup
+
+**Timers and Stopwatch**
+- Set countdown timers with sound notification
+- Stopwatch with start, stop, lap, and reset
+- List and cancel active timers
+
+**Quick Notes**
+- Create, search, and manage ephemeral notes with tags
+- Daily notes with structured sections (tasks, notes, events)
+- Append to daily notes under specific sections
+
+**Clipboard History**
+- Automatic capture of clipboard text with secret detection (skips passwords, API keys)
+- Full-text search across clipboard history via FTS5
+- Source app tracking for each entry
+
+**Conversation Search**
+- Full-text search across all past conversations
+- Filter by role (user or assistant messages)
+- List and browse conversation history
+
+**Response Customization**
+- Response style presets: brief, detailed, witty, formal, casual
+- Custom response instructions
+- Standing instructions (persona) that persist across conversations
+- Fast-path intents: common commands (mute, weather, open app, screenshot) run instantly without LLM
 
 **Memory and Knowledge**
 - Long-term memory: remember facts and preferences, recall by semantic search
@@ -124,6 +150,10 @@ Say it, see it happen, stay in control.
 - Browse and install MCP servers from a catalogue
 - Configuration presets for quick setup
 - Custom skills and macros
+
+### Fast-Path Intent Matching
+
+Simple voice commands like "mute", "open Chrome", "weather", "timer for 5 minutes", and "volume 50" skip the LLM entirely and execute instantly through pattern matching. If the fast-path fails, it falls back to the full LLM pipeline transparently.
 
 ### Heads-Up Display
 
@@ -187,7 +217,8 @@ JARVIS
 |   |-- Orchestrator (agent loop, tool dispatch)
 |   |-- Provider Router (8 providers, health tracking, fallback)
 |   |-- Policy Engine (tier enforcement, taint tracking)
-|   |-- Tool Registry (132 tools, pydantic validation)
+|   |-- Fast-Path Intent Matcher (instant commands)
+|   |-- Tool Registry (158 tools, pydantic validation)
 |   |-- Background Task Engine (SQLite, checkpointing)
 |   |-- Deep Research Pipeline (5-stage with verification)
 |   |-- Routine Engine (scheduled proactive tasks)
@@ -243,6 +274,20 @@ Then open **Settings** in the HUD and add a provider: paste a cloud API key (sto
 | Ctrl+Alt+J | Summon JARVIS and focus the command bar |
 | Ctrl+Alt+Backspace | Kill switch: cancel all runs, deny pending approvals |
 
+### Run Center and document review
+
+Open **Runs** (Ctrl+5) to compare extracts. Enter the CSV or XLSX paths and one or more business-key columns.
+Select **Build Excel report** to download every break after the run finishes. Optionally enter a shared numeric
+column such as RWA to include the variance waterfall. Saved workflows can be revised and scheduled from Runs.
+Excel input and output use openpyxl (`uv pip install openpyxl` if missing).
+
+In the Console, ask Jarvis to compare two local numbered document revisions or trace requirements to UAT
+evidence. The regulation comparison accepts Markdown, text, DOCX and text-based PDF, with an optional
+`clause,control,owner,policy` CSV. The UAT workflow accepts CSV or XLSX registers with
+`requirement_id,requirement` and `test_id,requirement_id,result,evidence` columns. Results are
+`pass`, `fail`, `blocked`, or `not run`. Provide a prior requirements register to identify tests for revised requirements.
+Ask Jarvis to create or list a case file to track deadlines, evidence references, correspondence drafts, and next actions.
+
 ## Development
 
 ```powershell
@@ -291,7 +336,7 @@ JARVIS/
 |   |-- gateway.py        # Hub class, WebSocket server, lifecycle
 |   |-- orchestrator.py   # Agent loop, tool dispatch
 |   |-- providers/        # LLM provider implementations
-|   |-- tools/            # 132 tools across 36 modules
+|   |-- tools/            # 158 tools across 46 modules
 |   |-- policy.py         # Tier enforcement, taint tracking
 |   |-- memory.py         # Long-term memory store
 |   |-- scheduler.py      # Task scheduling engine

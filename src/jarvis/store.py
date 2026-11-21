@@ -44,11 +44,31 @@ CREATE TABLE IF NOT EXISTS audit (
     error TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit(id DESC);
+CREATE TABLE IF NOT EXISTS case_files (
+    id TEXT PRIMARY KEY,
+    revision INTEGER NOT NULL,
+    data_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value_json TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+
+CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+    content_text, role,
+    content='messages', content_rowid='rowid'
+);
+
+CREATE TRIGGER IF NOT EXISTS msg_fts_ai AFTER INSERT ON messages BEGIN
+    INSERT INTO messages_fts(rowid, content_text, role)
+    VALUES (new.rowid, json_extract(new.content_json, '$.content'), new.role);
+END;
+CREATE TRIGGER IF NOT EXISTS msg_fts_ad AFTER DELETE ON messages BEGIN
+    INSERT INTO messages_fts(messages_fts, rowid, content_text, role)
+    VALUES ('delete', old.rowid, json_extract(old.content_json, '$.content'), old.role);
+END;
 """
 
 
@@ -81,6 +101,46 @@ class Store:
     def close(self) -> None:
         with self._lock:
             self._db.close()
+
+    def save_case(self, data: dict[str, Any], case_id: str | None = None,
+                  revision: int | None = None) -> dict[str, Any]:
+        timestamp = now_iso()
+        serialized = json.dumps(data)
+        with self._lock:
+            if case_id is None:
+                case_id = uuid.uuid4().hex[:16]
+                self._db.execute("INSERT INTO case_files VALUES (?, 1, ?, ?)", (case_id, serialized, timestamp))
+                new_revision = 1
+            else:
+                result = self._db.execute(
+                    "UPDATE case_files SET revision = revision + 1, data_json = ?, updated_at = ? "
+                    "WHERE id = ? AND revision = ?", (serialized, timestamp, case_id, revision),
+                )
+                if result.rowcount == 0:
+                    raise ValueError("The case changed or no longer exists. Read the current case before editing.")
+                new_revision = revision + 1
+        return {"id": case_id, "revision": new_revision, "updated_at": timestamp}
+
+    def get_case(self, case_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            row = self._db.execute("SELECT * FROM case_files WHERE id = ?", (case_id,)).fetchone()
+        if row is None:
+            return None
+        return json.loads(row["data_json"]) | {key: row[key] for key in ("id", "revision", "updated_at")}
+
+    def list_cases(self, status: str | None, limit: int) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._db.execute(
+                """SELECT id, revision, updated_at,
+                   json_extract(data_json, '$.title') AS title,
+                   json_extract(data_json, '$.status') AS status,
+                   json_extract(data_json, '$.deadline') AS deadline,
+                   json_extract(data_json, '$.next_action') AS next_action
+                   FROM case_files
+                   WHERE ? IS NULL OR json_extract(data_json, '$.status') = ?
+                   ORDER BY deadline NULLS LAST, updated_at DESC LIMIT ?""", (status, status, limit),
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     # -- settings ---------------------------------------------------------------------------
 
@@ -194,6 +254,52 @@ class Store:
             msg["_meta"] = {"provider": r["provider"], "model": r["model"], "ts": r["created_at"]}
             out.append(msg)
         return out
+
+    # -- conversation search (FTS5, idea #4) -------------------------------------------------------
+
+    def search_conversations(self, query: str, *, role: str | None = None,
+                             limit: int = 20) -> list[dict[str, Any]]:
+        limit = max(1, min(limit, 100))
+        safe = "".join(c for c in query if c.isalnum() or c in " .-_")[:200].strip()
+        if not safe:
+            return []
+        fts_query = f'"{safe}"'
+        params: list[Any] = [fts_query]
+        role_clause = ""
+        if role:
+            role_clause = "AND m.role = ?"
+            params.append(role)
+        params.append(limit)
+        sql = (
+            "SELECT m.id, m.conversation_id, m.role, m.content_json, m.created_at, "
+            "c.title AS conversation_title "
+            "FROM messages m "
+            "JOIN messages_fts f ON f.rowid = m.rowid "
+            "JOIN conversations c ON c.id = m.conversation_id "
+            f"WHERE messages_fts MATCH ? {role_clause} "
+            "ORDER BY m.created_at DESC LIMIT ?"
+        )
+        with self._lock:
+            try:
+                rows = self._db.execute(sql, params).fetchall()
+            except sqlite3.OperationalError:
+                return []
+        results = []
+        for r in rows:
+            content = json.loads(r["content_json"]).get("content", "")
+            results.append({
+                "message_id": r["id"],
+                "conversation_id": r["conversation_id"],
+                "conversation_title": r["conversation_title"],
+                "role": r["role"],
+                "content": str(content)[:500],
+                "created_at": r["created_at"],
+            })
+        return results
+
+    def rebuild_messages_fts(self) -> None:
+        with self._lock:
+            self._db.execute("INSERT INTO messages_fts(messages_fts) VALUES('rebuild')")
 
     # -- audit (append-only: there is deliberately no update or delete path, SEC-12) ------------
 

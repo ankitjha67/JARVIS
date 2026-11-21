@@ -186,6 +186,15 @@ class Scheduler:
         with self._lock:
             return [dict(r) for r in self._db.execute(sql, params).fetchall()]
 
+    def list_routines(self, routine_type: str) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT id, name, schedule, status, next_run_at, last_run_at FROM scheduled_tasks "
+                "WHERE type = 'routine' AND json_extract(payload_json, '$.routine_type') = ? "
+                "ORDER BY created_at DESC LIMIT 100", (routine_type,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def task_runs(self, task_id: str, limit: int = 20) -> list[dict[str, Any]]:
         with self._lock:
             return [dict(r) for r in self._db.execute(

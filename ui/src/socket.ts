@@ -44,6 +44,22 @@ export function connect(): void {
   };
 }
 
+export async function downloadWorkbook(id: string): Promise<void> {
+  const base = import.meta.env.DEV ? `http://127.0.0.1:${CORE_PORT}` : '';
+  const response = await fetch(`${base}/api/runs/${encodeURIComponent(id)}/workbook`, {
+    headers: { Authorization: `Bearer ${token ?? ''}` },
+  });
+  if (!response.ok) throw new Error(`Workbook download failed (${response.status}).`);
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `reconciliation-${id}.xlsx`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /** Returns false when the core is not connected, so callers can keep the user's input. */
 export function send(msg: ClientMessage): boolean {
   if (!ws || ws.readyState !== WebSocket.OPEN) return false;

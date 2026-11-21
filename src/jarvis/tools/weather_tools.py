@@ -85,11 +85,17 @@ def _fetch_weather(location: str, units: str) -> dict:
 
 
 class WeatherArgs(Args):
-    location: str = Field(..., min_length=1, max_length=200, description="City name, e.g. 'New York' or 'London'")
+    location: str = Field("", max_length=200, description="City name, e.g. 'New York' or 'London'. Leave empty to use auto-detected location.")
     units: str = Field("metric", pattern="^(metric|imperial)$", description="metric (°C) or imperial (°F)")
 
 
-@tool("weather_get", "Get current weather and 3-day forecast for a location.",
-      WeatherArgs, Tier.T0, summary=lambda a: f"Weather for {a.location}")
+@tool("weather_get", "Get current weather and 3-day forecast. Defaults to the user's current location if none specified.",
+      WeatherArgs, Tier.T0, summary=lambda a: f"Weather for {a.location or 'current location'}")
 async def weather_get(a: WeatherArgs) -> dict:
-    return await asyncio.to_thread(_fetch_weather, a.location, a.units)
+    loc = a.location
+    if not loc:
+        from .. import location as loc_mod
+        loc = loc_mod.city()
+        if not loc:
+            raise ToolError("Could not detect location automatically. Please specify a city name.")
+    return await asyncio.to_thread(_fetch_weather, loc, a.units)

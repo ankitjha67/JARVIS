@@ -45,6 +45,9 @@ class RoutineEngine:
             "condition_monitor": self._condition_monitor,
         }
 
+    def register(self, name: str, handler: Callable[[dict[str, Any]], Awaitable[Any]]) -> None:
+        self._dispatchers[name] = handler
+
     def register_handlers(self) -> None:
         self._scheduler.on_fire("routine", self._handle_routine)
 

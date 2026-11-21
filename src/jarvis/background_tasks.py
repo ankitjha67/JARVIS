@@ -54,6 +54,11 @@ CREATE TABLE IF NOT EXISTS bg_task_steps (
     UNIQUE(task_id, step_index)
 );
 CREATE INDEX IF NOT EXISTS idx_bg_steps_task ON bg_task_steps(task_id, step_index);
+
+CREATE TABLE IF NOT EXISTS bg_task_workbooks (
+    task_id TEXT PRIMARY KEY REFERENCES bg_tasks(id) ON DELETE CASCADE,
+    content BLOB NOT NULL
+);
 """
 
 
@@ -88,22 +93,28 @@ class BackgroundTaskEngine:
 
     def create(
         self, name: str, type_: str = "research", goal: str = "",
-        priority: int = 5, steps: list[str] | None = None,
+        priority: int = 5, steps: list[str] | None = None, *,
+        checkpoint: dict[str, Any] | None = None, task_id: str | None = None,
     ) -> str:
-        tid = uuid.uuid4().hex[:16]
+        tid = task_id or uuid.uuid4().hex[:16]
         ts = _now()
         with self._lock:
-            self._db.execute(
-                "INSERT INTO bg_tasks(id, type, name, goal, priority, created_at, updated_at) "
-                "VALUES(?,?,?,?,?,?,?)",
-                (tid, type_, name, goal, max(0, min(9, priority)), ts, ts),
-            )
-            if steps:
-                for i, desc in enumerate(steps):
-                    self._db.execute(
+            self._db.execute("BEGIN")
+            try:
+                created = self._db.execute(
+                    "INSERT INTO bg_tasks(id, type, name, goal, priority, created_at, updated_at, checkpoint_json) "
+                    "VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING",
+                    (tid, type_, name, goal, max(0, min(9, priority)), ts, ts, json.dumps(checkpoint or {})),
+                ).rowcount
+                if created and steps:
+                    self._db.executemany(
                         "INSERT INTO bg_task_steps(task_id, step_index, description) VALUES(?,?,?)",
-                        (tid, i, desc),
+                        [(tid, i, desc) for i, desc in enumerate(steps)],
                     )
+                self._db.commit()
+            except Exception:
+                self._db.rollback()
+                raise
         log.info("bg_task created %s %r (%s)", tid, name, type_)
         return tid
 
@@ -140,7 +151,7 @@ class BackgroundTaskEngine:
             params.append(error[:2000])
         if result is not None:
             sets.append("result_json = ?")
-            params.append(json.dumps(result, default=str)[:50_000])
+            params.append(json.dumps(result, default=str))
         if progress is not None:
             sets.append("progress = ?")
             params.append(max(0.0, min(1.0, progress)))
@@ -168,13 +179,29 @@ class BackgroundTaskEngine:
             params.append(ts)
         if output is not None:
             sets.append("output_json = ?")
-            params.append(json.dumps(output, default=str)[:20_000])
+            params.append(json.dumps(output, default=str))
         params.extend([task_id, step_index])
         with self._lock:
             self._db.execute(
                 f"UPDATE bg_task_steps SET {', '.join(sets)} WHERE task_id = ? AND step_index = ?",
                 params,
             )
+
+    def save_workbook(self, task_id: str, content: bytes) -> None:
+        with self._lock:
+            self._db.execute(
+                "INSERT INTO bg_task_workbooks(task_id, content) VALUES(?, ?) "
+                "ON CONFLICT(task_id) DO UPDATE SET content = excluded.content",
+                (task_id, content),
+            )
+
+    def get_workbook(self, task_id: str) -> bytes | None:
+        with self._lock:
+            row = self._db.execute(
+                "SELECT content FROM bg_task_workbooks JOIN bg_tasks ON bg_tasks.id = task_id "
+                "WHERE task_id = ? AND status = 'done'", (task_id,),
+            ).fetchone()
+        return row["content"] if row else None
 
     def get_task(self, task_id: str) -> dict[str, Any] | None:
         with self._lock:
@@ -223,11 +250,15 @@ class BackgroundTaskEngine:
             )
         return cur.rowcount > 0
 
-    def queued_ids(self) -> list[str]:
+    def queued_ids(self, goals: tuple[str, ...] | None = None) -> list[str]:
         """Return task IDs that are queued, ordered by priority then creation time."""
+        if goals == ():
+            return []
+        filter_sql = " AND goal IN (" + ",".join("?" for _ in goals) + ")" if goals else ""
         with self._lock:
             rows = self._db.execute(
-                "SELECT id FROM bg_tasks WHERE status = 'queued' ORDER BY priority DESC, created_at LIMIT 20"
+                "SELECT id FROM bg_tasks WHERE status = 'queued'" + filter_sql +
+                " ORDER BY priority DESC, created_at LIMIT 20", goals or (),
             ).fetchall()
         return [r["id"] for r in rows]
 
@@ -244,8 +275,9 @@ class BackgroundTaskEngine:
         return len(ids_to_remove)
 
 
+ProgressFn = Callable[[str, float], Awaitable[None]]
 RunnerFn = Callable[
-    [str, "BackgroundTaskEngine", Callable[[str, float], Awaitable[None]]],
+    [str, "BackgroundTaskEngine", ProgressFn],
     Awaitable[Any],
 ]
 
@@ -261,20 +293,29 @@ class TaskRunner:
         self._sem = asyncio.Semaphore(max_concurrent)
         self._on_update = on_update
         self._running: dict[str, asyncio.Task[None]] = {}
+        self._runners: dict[str, RunnerFn] = {}
         self._default_runner: RunnerFn | None = None
         self._active = False
 
     def set_runner(self, runner: RunnerFn) -> None:
         self._default_runner = runner
 
+    def register_runner(self, goal: str, runner: RunnerFn) -> None:
+        self._runners[goal] = runner
+
     async def submit(self, task_id: str, runner: RunnerFn | None = None) -> bool:
         if task_id in self._running:
             return False
-        fn = runner or self._default_runner
+        task = self.engine.get_task(task_id)
+        if not task or task["status"] != "queued":
+            return False
+        fn = runner or self._runners.get(task["goal"]) or self._default_runner
         if not fn:
             log.warning("no runner for bg task %s", task_id)
             return False
-        self._running[task_id] = asyncio.create_task(self._execute(task_id, fn))
+        task_handle = asyncio.create_task(self._execute(task_id, fn))
+        self._running[task_id] = task_handle
+        task_handle.add_done_callback(lambda _: self._running.pop(task_id, None))
         return True
 
     async def cancel(self, task_id: str) -> bool:
@@ -298,12 +339,13 @@ class TaskRunner:
                 result = await runner(task_id, self.engine, report)
                 self.engine.set_status(task_id, "done", result=result, progress=1.0)
             except asyncio.CancelledError:
-                self.engine.set_status(task_id, "cancelled")
+                if self._active:
+                    self.engine.cancel(task_id)
+                raise
             except Exception as exc:
                 log.exception("bg task %s failed", task_id)
                 self.engine.set_status(task_id, "failed", error=str(exc)[:1000])
             finally:
-                self._running.pop(task_id, None)
                 await self._notify(task_id)
 
     async def _notify(self, task_id: str, step: str = "", progress: float = -1) -> None:
@@ -317,7 +359,8 @@ class TaskRunner:
         self._active = True
         while self._active:
             try:
-                queued = await asyncio.to_thread(self.engine.queued_ids)
+                goals = None if self._default_runner else tuple(self._runners)
+                queued = await asyncio.to_thread(self.engine.queued_ids, goals)
                 for tid in queued:
                     if tid not in self._running:
                         await self.submit(tid)
@@ -326,7 +369,9 @@ class TaskRunner:
                 log.exception("bg task runner loop error")
             await asyncio.sleep(2.0)
 
-    def stop(self) -> None:
+    async def stop(self) -> None:
         self._active = False
-        for task in self._running.values():
+        running = tuple(self._running.values())
+        for task in running:
             task.cancel()
+        await asyncio.gather(*running, return_exceptions=True)

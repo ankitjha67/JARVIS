@@ -94,6 +94,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "max_steps": 25,
     "autonomy": "guarded",  # guarded | trusted (see policy.decide)
     "email": {"address": "", "imap_host": "", "imap_port": 993, "smtp_host": "", "smtp_port": 465},
+    "response_style": {"name": "default", "instruction": ""},
+    "persona": "",
     "mcp_servers": {},  # name -> {"command", "args", "env"} or {"url", "headers"}
     "custom_providers": {},  # id -> {"label": str, "base_url": str, "needs_key": bool}
 }
