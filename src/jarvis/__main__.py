@@ -15,7 +15,7 @@ from typing import Any
 import uvicorn
 
 from . import __version__
-from .config import HOST, LOG_PATH, PORT, ensure_dirs
+from .config import DB_PATH, HOST, LOG_PATH, PORT, ensure_dirs
 from .gateway import Hub, create_app
 from .hotkeys import HotkeyThread
 from .store import Store
@@ -118,7 +118,7 @@ def main() -> None:
         else:
             from .shell import run_window
 
-            settings = Store().get_settings()
+            settings = Store(DB_PATH).get_settings()
             title = (settings.get("assistant_name") or "J.A.R.V.I.S").replace(".", "")
             run_window(url, window_ref, title=title)
     except KeyboardInterrupt:

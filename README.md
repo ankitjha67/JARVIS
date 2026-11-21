@@ -5,7 +5,7 @@
 <h1 align="center">J.A.R.V.I.S.</h1>
 <p align="center">
   <b>Personal AI Desktop Assistant for Windows</b><br/>
-  164 tools. 8 LLM providers. Voice control. One HUD.
+  164 tools. 8 LLM providers. Voice control. Fully configurable. One HUD.
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@
 
 ---
 
-JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 158 audited tools, and presents everything through a cinematic heads-up display you can control by voice or keyboard. Simple commands execute instantly through fast-path pattern matching without touching the LLM.
+JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 158 audited tools, and presents everything through a cinematic heads-up display you can control by voice or keyboard. Simple commands execute instantly through fast-path pattern matching without touching the LLM. New installs start with a guided onboarding wizard, and the assistant name, wake word, and branding are fully configurable.
 
 Say it, see it happen, stay in control.
 
@@ -29,6 +29,14 @@ Say it, see it happen, stay in control.
 | ![Console](screenshots/jarvis-hud-console.png) | ![Audit](screenshots/jarvis-hud-audit.png) | ![Repair](screenshots/jarvis-hud-repair.png) | ![Settings](screenshots/jarvis-hud-settings.png) |
 
 ## Key Features
+
+### First-Run Onboarding
+
+New installs launch a 6-step guided wizard: welcome screen with animated core visual, name your assistant (any name you like), choose a privacy mode, connect an LLM provider (paste a cloud API key or start a local server), pick a theme, and launch. The entire setup takes about 30 seconds and stores everything locally.
+
+### Configurable Assistant Name
+
+Rename the assistant to anything you want from Settings or during onboarding. The name propagates everywhere: title bar, taskbar, wake word, console messages, voice prompts, and the LLM system prompt. The wake word system auto-registers the custom name as a voice alias alongside the built-in "Hey Jarvis" detector.
 
 ### AI and Language Models
 - **8 LLM providers** out of the box: LM Studio, Ollama, NVIDIA NIM, Anthropic, OpenAI, Google Gemini, OpenRouter, and Groq
@@ -167,6 +175,7 @@ The HUD is built with React 19, TypeScript, and Zustand, rendered in a pywebview
 - **Activity Panel**: every tool call with tier badge, arguments, duration, and outcome
 - **Approval Cards**: exact action details with Allow/Deny controls, keyboard operable
 - **3 Themes**: Ion (cyan), Holographic OS, Sovereign Executive
+- **Onboarding Wizard**: guided first-run setup for new installs
 - **Navigation**: Console, Audit, Repair, and Settings views
 
 ### Android Companion App
@@ -265,7 +274,7 @@ npm --prefix ui run build
 uv run jarvis
 ```
 
-Then open **Settings** in the HUD and add a provider: paste a cloud API key (stored in Windows Credential Manager) or start LM Studio's server (`lms server start`) and load a model.
+On first launch, the onboarding wizard walks you through naming your assistant, choosing a privacy mode, connecting an LLM provider, and picking a theme. You can change all of these later in Settings.
 
 ### Hotkeys
 
@@ -350,6 +359,7 @@ JARVIS/
 |-- ui/                   # React HUD
 |   |-- src/
 |   |   |-- App.tsx       # Main application
+|   |   |-- Onboarding.tsx # First-run onboarding wizard
 |   |   |-- Hud.tsx       # HUD layout and core visual
 |   |   |-- Console.tsx   # Console view
 |   |   |-- store.ts      # Zustand state management
