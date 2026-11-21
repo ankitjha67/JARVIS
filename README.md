@@ -24,9 +24,9 @@ Say it, see it happen, stay in control.
 
 ## Screenshots
 
-| Main HUD | Console View | Repair Panel |
-|----------|-------------|--------------|
-| ![Main HUD](screenshots/jarvis-hud-main.jpg) | ![Console](screenshots/jarvis-hud-console.jpg) | ![Repair](screenshots/jarvis-repair-panel.jpg) |
+| Console | Audit | Repair | Settings |
+|---------|-------|--------|----------|
+| ![Console](screenshots/jarvis-hud-console.png) | ![Audit](screenshots/jarvis-hud-audit.png) | ![Repair](screenshots/jarvis-hud-repair.png) | ![Settings](screenshots/jarvis-hud-settings.png) |
 
 ## Key Features
 
