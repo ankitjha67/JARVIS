@@ -30,7 +30,7 @@ ERROR_HOLD_S = 4.0
 
 Broadcast = Callable[[dict[str, Any]], Awaitable[None]]
 
-SYSTEM_PROMPT = """You are Jarvis, a desktop assistant running locally on the user's Windows 11 computer. \
+SYSTEM_PROMPT = """You are {name}, a desktop assistant running locally on the user's Windows 11 computer. \
 You act on the machine through tools.
 
 How to work:
@@ -38,7 +38,7 @@ How to work:
 - To operate a desktop app: focus its window, call ui_snapshot to see its controls, then act on a control by \
 its ref with ui_click / ui_type. Take a new snapshot after the screen changes; refs do not survive.
 - To use a website: browser_open, then browser_snapshot, then browser_click / browser_type by ref. This is \
-Jarvis's own browser window with its own saved sign-ins. If a site needs a login, ask the user to sign in \
+{name}'s own browser window with its own saved sign-ins. If a site needs a login, ask the user to sign in \
 there themselves; never type passwords, one-time codes or card numbers.
 - For email use the email_* tools; for anything they cannot do, use the webmail site in the browser.
 - Tools named mcp__<server>__<tool> come from servers the user connected; use them when they fit.
@@ -192,6 +192,7 @@ class Orchestrator:
         now = datetime.now().astimezone()
         ctx = (f"Local time {now.strftime('%A %d %B %Y, %H:%M %Z')}. "
                f"OS {platform.system()} {platform.release()}. User home is ~ (use ~ in paths).")
+        name = "Jarvis"
         try:
             from . import location
             loc = location.display()
@@ -210,6 +211,7 @@ class Orchestrator:
                 if skill_ctx:
                     ctx += f"\n\n{skill_ctx}"
                 settings = hub.store.get_settings()
+                name = (settings.get("assistant_name") or "J.A.R.V.I.S").replace(".", "")
                 style = settings.get("response_style", {})
                 if style.get("instruction"):
                     ctx += f"\n\nResponse style: {style['instruction']}"
@@ -218,7 +220,7 @@ class Orchestrator:
                     ctx += f"\n\nStanding instruction: {persona}"
         except Exception:
             pass
-        return SYSTEM_PROMPT.format(context=ctx)
+        return SYSTEM_PROMPT.format(name=name, context=ctx)
 
     async def run_headless(self, text: str, max_steps: int = 10) -> str:
         """Run a goal in the background without full UI integration. Returns the final text."""

@@ -18,6 +18,7 @@ from . import __version__
 from .config import HOST, LOG_PATH, PORT, ensure_dirs
 from .gateway import Hub, create_app
 from .hotkeys import HotkeyThread
+from .store import Store
 from .protocol import msg
 from .secrets import redact
 
@@ -117,7 +118,9 @@ def main() -> None:
         else:
             from .shell import run_window
 
-            run_window(url, window_ref)
+            settings = Store().get_settings()
+            title = (settings.get("assistant_name") or "J.A.R.V.I.S").replace(".", "")
+            run_window(url, window_ref, title=title)
     except KeyboardInterrupt:
         pass
     finally:

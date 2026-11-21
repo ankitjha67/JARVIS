@@ -8,6 +8,8 @@ export type Tier = 0 | 1 | 2 | 3;
 export type ThemeId = 'ion' | 'holographic' | 'sovereign';
 
 export interface Settings {
+  onboarding_complete: boolean;
+  assistant_name: string;
   privacy_mode: PrivacyMode;
   routing: { mode: 'auto' | 'manual'; order: string[]; manual_provider: string | null };
   models: Record<string, string | null>;

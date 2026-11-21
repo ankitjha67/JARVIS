@@ -3,6 +3,7 @@ import { ClipboardList, ListChecks, Minus, Settings as Cog, Square, TerminalSqua
 import { AuditView } from './Audit';
 import { Console } from './Console';
 import { Backdrop, Scramble } from './Hud';
+import { Onboarding } from './Onboarding';
 import type { AgentState } from './protocol';
 import { RepairView } from './Repair';
 import { RunsView } from './Runs';
@@ -27,14 +28,16 @@ function TitleBar() {
   const agent = useHud((s) => s.agent);
   const conn = useHud((s) => s.conn);
   const privacy = useHud((s) => s.settings?.privacy_mode);
+  const name = useHud((s) => s.settings?.assistant_name) || 'J.A.R.V.I.S';
   const hasWindow = useHud((s) => s.hasWindow);
   const killKey = useHud((s) => s.hotkeys.kill);
   const setView = useHud((s) => s.setView);
   const wake = useHud((s) => s.integrations?.wake);
   const online = conn === 'online';
+  useEffect(() => { document.title = name.replace(/\./g, ''); }, [name]);
   return (
     <header className="titlebar">
-      <span className="wordmark pywebview-drag-region" aria-label="Jarvis"><i aria-hidden="true" /><Scramble text="J.A.R.V.I.S" /></span>
+      <span className="wordmark pywebview-drag-region" aria-label={name}><i aria-hidden="true" /><Scramble text={name} /></span>
       <span className="titlebar__tag pywebview-drag-region">desktop intelligence</span>
       <div className="chips" role="status">
         <span className={`chip-s chip-s--${online ? 'ok' : 'bad'}`}><i aria-hidden="true" />{online ? 'Core online' : 'Core offline'}</span>
@@ -42,8 +45,8 @@ function TitleBar() {
         {privacy && <button className="chip-s chip-s--btn" onClick={() => setView('settings')} title="Privacy mode — change in Settings">{PRIVACY_TEXT[privacy]}</button>}
         {wake && wake.state !== 'off' && (
           <button className={`chip-s chip-s--btn chip-s--${wake.state === 'error' || wake.silent ? 'bad' : wake.state === 'listening' ? 'wake' : 'quiet'}`} onClick={() => setView('settings')}
-            title={wake.silent ? 'The microphone is sending silence — it may be muted' : wake.state === 'error' ? wake.error : `Listening for “Jarvis” on ${wake.device || 'the microphone'} — audio stays on this machine`}>
-            <i aria-hidden="true" />{wake.silent ? 'Mic silent' : wake.state === 'listening' ? 'Say “Jarvis”' : wake.state === 'error' ? 'Mic error' : 'Wake starting'}
+            title={wake.silent ? 'The microphone is sending silence — it may be muted' : wake.state === 'error' ? wake.error : `Listening for "${name.replace(/\./g, '')}" on ${wake.device || 'the microphone'} — audio stays on this machine`}>
+            <i aria-hidden="true" />{wake.silent ? 'Mic silent' : wake.state === 'listening' ? `Say "${name.replace(/\./g, '')}"` : wake.state === 'error' ? 'Mic error' : 'Wake starting'}
           </button>
         )}
         <span className="chip-s chip-s--quiet" title="Kill switch: cancels every run and denies pending approvals">Stop · {killKey}</span>
@@ -84,7 +87,7 @@ function ConnectionBanner() {
   const attempt = useHud((s) => s.attempt);
   if (conn === 'online') return null;
   const text = conn === 'connecting' ? 'Connecting to core…'
-    : conn === 'rejected' ? 'This window is not authorised for the running core. Close it and start Jarvis again.'
+    : conn === 'rejected' ? 'This window is not authorised for the running core. Close it and start the app again.'
     : `Core offline — reconnecting (attempt ${attempt})`;
   return <div className={`banner banner--${conn}`} role="alert"><WifiOff size={14} aria-hidden="true" />{text}</div>;
 }
@@ -112,6 +115,8 @@ export function App() {
   const setView = useHud((s) => s.setView);
   const agent = useHud((s) => s.agent);
   const theme = useHud((s) => s.settings?.theme);
+  const onboarded = useHud((s) => s.settings?.onboarding_complete);
+  const settingsLoaded = useHud((s) => s.settings !== null);
   useSpeech();
   useEffect(() => {
     const el = document.documentElement;
@@ -129,6 +134,8 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [setView]);
   useEffect(() => { if (view !== 'console') document.getElementById('view-root')?.focus({ preventScroll: true }); }, [view]);
+  if (settingsLoaded && !onboarded) return <Onboarding />;
+
   return (
     <div className={`app app--${agent}`}>
       <Backdrop />

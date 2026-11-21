@@ -62,8 +62,9 @@ from .wake import WakeListener
 log = logging.getLogger(__name__)
 
 HOTKEYS = {"summon": "Ctrl+Alt+J", "kill": "Ctrl+Alt+Backspace"}
-_SETTINGS_KEYS = {"privacy_mode", "routing", "models", "voice", "max_steps", "autonomy", "email", "mcp_servers",
-                  "custom_providers", "integrations", "theme"}
+_SETTINGS_KEYS = {"onboarding_complete", "assistant_name", "privacy_mode", "routing", "models", "voice",
+                  "max_steps", "autonomy", "email", "mcp_servers", "custom_providers", "integrations",
+                  "theme", "persona", "response_style"}
 
 
 def allowed_origins(port: int = PORT) -> set[str]:
@@ -218,6 +219,18 @@ def validate_settings_patch(patch: dict[str, Any]) -> dict[str, Any]:
         elif key == "theme":
             if value not in ("ion", "holographic", "sovereign"):
                 raise ValueError("theme must be ion, holographic or sovereign")
+        elif key == "onboarding_complete":
+            if not isinstance(value, bool):
+                raise ValueError("onboarding_complete must be true or false")
+        elif key == "assistant_name":
+            if not isinstance(value, str) or not 1 <= len(value.strip()) <= 40:
+                raise ValueError("assistant_name must be 1–40 characters")
+        elif key == "persona":
+            if not isinstance(value, str) or len(value) > 2000:
+                raise ValueError("persona must be a string under 2000 chars")
+        elif key == "response_style":
+            if not isinstance(value, dict) or not set(value) <= {"name", "instruction"}:
+                raise ValueError("invalid response_style")
         clean[key] = value
     return clean
 
@@ -508,8 +521,12 @@ class Hub:
 
     def _apply_wake(self, settings: dict[str, Any]) -> None:
         voice = settings.get("voice") or {}
+        aliases = list(voice.get("wake_aliases") or [])
+        custom_name = settings.get("assistant_name") or ""
+        if custom_name and custom_name != "J.A.R.V.I.S":
+            aliases.insert(0, custom_name.replace(".", "").strip())
         self.wake.apply(bool(voice.get("wake_word")), float(voice.get("wake_sensitivity", 0.5)),
-                        voice.get("wake_aliases") or [], str(voice.get("stt_model") or "base.en"),
+                        aliases, str(voice.get("stt_model") or "base.en"),
                         voice.get("corrections") or {})
         self._wake_ack = (bool(voice.get("wake_ack", True)), str(voice.get("wake_reply", "Yes?")),
                           str(voice.get("tts_voice") or ""))

@@ -10,7 +10,7 @@ from .config import DATA_DIR
 
 
 def force_foreground() -> bool:
-    """Raise and focus Jarvis's own (already restored) window, even though another app has focus.
+    """Raise and focus the HUD window, even though another app has focus.
 
     Windows refuses SetForegroundWindow from a background process unless that process just received input,
     so a synthetic Alt tap is sent first; a brief always-on-top flip guarantees the window is at least
@@ -24,11 +24,12 @@ def force_foreground() -> bool:
     import win32process
 
     target: list[int] = []
+    my_pid = os.getpid()
 
     def visit(hwnd: int, _: object) -> bool:
-        if win32gui.IsWindow(hwnd) and win32gui.GetWindowText(hwnd) == "Jarvis":
+        if win32gui.IsWindow(hwnd) and win32gui.IsWindowVisible(hwnd):
             _, pid = win32process.GetWindowThreadProcessId(hwnd)
-            if pid == os.getpid():
+            if pid == my_pid and win32gui.GetWindowText(hwnd):
                 target.append(hwnd)
                 return False
         return True
@@ -54,12 +55,12 @@ def force_foreground() -> bool:
     return True
 
 
-def run_window(url: str, window_ref: dict[str, Any]) -> None:
+def run_window(url: str, window_ref: dict[str, Any], title: str = "Jarvis") -> None:
     """Blocks on the main thread until the window is closed."""
     # WebView2 opens a native Save As dialog for report downloads.
     webview.settings["ALLOW_DOWNLOADS"] = True
     window = webview.create_window(
-        "Jarvis", url, width=1280, height=800, min_size=(1100, 680),
+        title, url, width=1280, height=800, min_size=(1100, 680),
         frameless=True, easy_drag=False, background_color="#05080D", text_select=True,
     )
     window_ref["win"] = window

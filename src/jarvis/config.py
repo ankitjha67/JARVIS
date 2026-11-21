@@ -74,6 +74,8 @@ PROVIDER_BY_ID = {p.id: p for p in PROVIDERS}
 PrivacyMode = Literal["local", "hybrid", "cloud"]
 
 DEFAULT_SETTINGS: dict[str, Any] = {
+    "onboarding_complete": False,
+    "assistant_name": "J.A.R.V.I.S",
     "privacy_mode": "hybrid",
     "routing": {
         "mode": "auto",  # auto | manual
@@ -95,6 +97,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "autonomy": "guarded",  # guarded | trusted (see policy.decide)
     "email": {"address": "", "imap_host": "", "imap_port": 993, "smtp_host": "", "smtp_port": 465},
     "response_style": {"name": "default", "instruction": ""},
+    "theme": "ion",
     "persona": "",
     "mcp_servers": {},  # name -> {"command", "args", "env"} or {"url", "headers"}
     "custom_providers": {},  # id -> {"label": str, "base_url": str, "needs_key": bool}

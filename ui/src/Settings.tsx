@@ -455,6 +455,15 @@ export function SettingsView() {
       </div>
 
       {tab === 'general' && <>
+      <section className="card" aria-labelledby="s-name">
+        <h2 id="s-name">Assistant name</h2>
+        <label className="field"><span className="field__label">Display name</span>
+          <input type="text" value={settings.assistant_name || 'J.A.R.V.I.S'} maxLength={40} spellCheck={false}
+            onChange={(e) => patch({ assistant_name: e.target.value })} />
+          <span className="field__help">Appears in the title bar, wake word, taskbar and throughout the app. Change it to anything you like.</span>
+        </label>
+      </section>
+
       <section className="card" aria-labelledby="s-privacy">
         <h2 id="s-privacy">Privacy mode</h2>
         <div className="segmented" role="radiogroup" aria-labelledby="s-privacy">

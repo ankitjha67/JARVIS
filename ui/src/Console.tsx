@@ -98,6 +98,7 @@ const EXAMPLES = ['What is using the most memory right now?', 'Open Notepad', 'S
 function Transcript({ onExample }: { onExample: (text: string) => void }) {
   const items = useHud((s) => s.transcript);
   const hotkey = useHud((s) => s.hotkeys.summon);
+  const assistantName = useHud((s) => s.settings?.assistant_name)?.replace(/\./g, '') || 'Jarvis';
   const ref = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   useLayoutEffect(() => {
@@ -118,7 +119,7 @@ function Transcript({ onExample }: { onExample: (text: string) => void }) {
         if (it.kind === 'user') return <div key={it.id} className="msg msg--user"><span className="label">You</span><p>{it.text}</p></div>;
         if (it.kind === 'assistant') return (
           <div key={it.id} className="msg msg--assistant">
-            <span className="label">Jarvis{it.model && <span className="msg__model"> · {it.model.split('/').pop()}</span>}</span>
+            <span className="label">{assistantName}{it.model && <span className="msg__model"> · {it.model.split('/').pop()}</span>}</span>
             <Markdown text={it.text} />
             {it.streaming && <span className="caret" aria-hidden="true" />}
           </div>
