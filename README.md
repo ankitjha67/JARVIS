@@ -5,14 +5,14 @@
 <h1 align="center">J.A.R.V.I.S.</h1>
 <p align="center">
   <b>Personal AI Desktop Assistant for Windows</b><br/>
-  158 tools. 8 LLM providers. Voice control. One HUD.
+  164 tools. 8 LLM providers. Voice control. One HUD.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12"/>
   <img src="https://img.shields.io/badge/react-19-61DAFB" alt="React 19"/>
   <img src="https://img.shields.io/badge/kotlin-jetpack_compose-7F52FF" alt="Kotlin"/>
-  <img src="https://img.shields.io/badge/tools-158-green" alt="158 Tools"/>
+  <img src="https://img.shields.io/badge/tools-164-green" alt="164 Tools"/>
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License"/>
 </p>
 
