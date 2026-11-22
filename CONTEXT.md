@@ -2,7 +2,7 @@
 
 Living state of the project: what the machine is, what was decided and why, how to run it, and what is done. Read this first in any new session; update it at the end of every session. Product intent lives in [PRD.md](PRD.md).
 
-**Last updated:** 2026-11-21
+**Last updated:** 2026-11-22
 
 ---
 
@@ -114,7 +114,31 @@ Maintained in section 9.
 
 ## 9. Session log
 
-### 2026-11-22 — God's Eye View, Mobile MCP, voice calling, 7 new tools (171 total)
+### 2026-11-22 (b) — Roadmap build: 55 new tools, taskbar icon, bug fixes (226 total across 62 modules)
+
+**Done**
+- **Taskbar icon**: Generated `assets/logo.ico` (radar/eye design), wired into `shell.py` via `webview.start(icon=...)`.
+- **13 new tool modules** (55 tools):
+  - `music_tools.py` (3): music_search, music_play, music_lyrics — YouTube Music search and lyrics via lyrics.ovh.
+  - `ambient_tools.py` (3): ambient_scan, ambient_watch, ambient_focus_history — Win32 window monitoring.
+  - `sentinel_tools.py` (4): sentinel_create/list/check/remove — condition watchers (CPU, memory, disk, process, file, URL).
+  - `focus_tools.py` (4): focus_start/status/end/stats — deep work session tracking.
+  - `credential_tools.py` (3): credential_check_password, credential_check_reuse (HIBP k-anonymity), credential_generate.
+  - `fitness_tools.py` (4): fitness_reminder/check/log/summary — health reminders and activity logging.
+  - `workflow_tools.py` (6): workflow_record_start/step/stop/list/replay/delete — macro recording.
+  - `scratchpad_tools.py` (5): scratchpad_add/list/search/delete/clear — JSON-backed notes at DATA_DIR.
+  - `codereview_tools.py` (4): codereview_diff/log/blame/stats — git diff analysis.
+  - `incident_tools.py` (4): incident_capture/process_detail/network/service_status — system debugging.
+  - `privacy_tools.py` (4): privacy_net_audit/dns_lookup/listening_ports/startup_audit — network + startup monitoring.
+  - `clipboard_manager_tools.py` (5): clipboard_capture/history/pin/pinned/paste — clipboard history manager.
+  - `imagegen_tools.py` (2): image_generate (local SD WebUI), image_list — local image generation.
+  - `screenshot_tools.py` (4): clip_capture/list/delete/tag — screenshot organization with JSON index.
+- **Bug fixes**: `preset_tools.py` (`hub.settings_store` → `hub.store`), `presets.py` (`.patch()` → `.update_settings()`).
+- **Earlier this session**: Fixed `gods_eye_tools.py` and `mcp_catalogue_tools.py` (`hub.settings` → `hub.store.get_settings`).
+
+**Files touched:** `shell.py`, `assets/logo.ico` (new), `tools/__init__.py`, 13 new tool modules, `preset_tools.py`, `presets.py`, `gods_eye_tools.py`, `mcp_catalogue_tools.py`, `CONTEXT.md`, `PRD.md`.
+
+### 2026-11-22 (a) — God's Eye View, Mobile MCP, voice calling, 7 new tools (171 total)
 
 **Done**
 - Integrated [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view) as a managed MCP server with lifecycle tools.

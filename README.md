@@ -5,20 +5,20 @@
 <h1 align="center">J.A.R.V.I.S.</h1>
 <p align="center">
   <b>Personal AI Desktop Assistant for Windows</b><br/>
-  171 tools. 8 LLM providers. Voice control. Fully configurable. One HUD.
+  226 tools. 8 LLM providers. Voice control. Fully configurable. One HUD.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12"/>
   <img src="https://img.shields.io/badge/react-19-61DAFB" alt="React 19"/>
   <img src="https://img.shields.io/badge/kotlin-jetpack_compose-7F52FF" alt="Kotlin"/>
-  <img src="https://img.shields.io/badge/tools-171-green" alt="171 Tools"/>
+  <img src="https://img.shields.io/badge/tools-226-green" alt="226 Tools"/>
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License"/>
 </p>
 
 ---
 
-JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 171 audited tools, and presents everything through a cinematic heads-up display you can control by voice or keyboard. Simple commands execute instantly through fast-path pattern matching without touching the LLM. New installs start with a guided onboarding wizard, and the assistant name, wake word, and branding are fully configurable.
+JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 226 audited tools across 62 modules, and presents everything through a cinematic heads-up display you can control by voice or keyboard. Simple commands execute instantly through fast-path pattern matching without touching the LLM. New installs start with a guided onboarding wizard, and the assistant name, wake word, and branding are fully configurable.
 
 Say it, see it happen, stay in control.
 
@@ -46,7 +46,7 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 - **Model Ladder**: auto-escalation across 4 tiers (fast local, fast cloud, smart, premium) based on task complexity
 - **Streaming responses** with token-by-token output and model attribution
 
-### Computer Control (171 Tools across 48 modules)
+### Computer Control (226 Tools across 62 modules)
 
 **Desktop and Windows**
 - Search and launch installed applications
@@ -87,10 +87,14 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 - System volume control (set, adjust, mute)
 - Media playback control (play/pause, next, previous, stop)
 - YouTube search, play, and transcript extraction
+- Music search, play, and lyrics (YouTube Music + lyrics.ovh)
 - Screen capture with vision model analysis
+- Local image generation via Stable Diffusion WebUI (AUTOMATIC1111 / ComfyUI)
 
 **Developer Tools**
 - Git status, log, and diff inspection
+- Code review copilot: git diff, blame, stats for change analysis
+- Incident commander: system state capture, process detail, network audit, service status
 - Error explanation with fix suggestions
 - Project scaffolding (Python, Node, React, FastAPI, Flask, Next.js, HTML)
 - Project analysis (language detection, dependencies, entry points)
@@ -114,10 +118,11 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 - Daily notes with structured sections (tasks, notes, events)
 - Append to daily notes under specific sections
 
-**Clipboard History**
+**Clipboard History and Manager**
 - Automatic capture of clipboard text with secret detection (skips passwords, API keys)
 - Full-text search across clipboard history via FTS5
 - Source app tracking for each entry
+- Clipboard manager: history browsing, pin snippets for quick recall, paste from history
 
 **Conversation Search**
 - Full-text search across all past conversations
@@ -148,11 +153,13 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 - Condition monitors with custom prompts
 - Proactive notifications (opt-in)
 
-**Security and Audit**
+**Security, Privacy, and Credentials**
 - Security audit log with full action history
 - Taint tracking for untrusted content
 - Sensitive data redaction in logs
 - Credential management via Windows Credential Manager
+- Privacy guardian: network connection audit, listening ports scan, startup programs audit, DNS lookup logger
+- Credential health check: password strength analysis, HIBP Pwned Passwords k-anonymity check, secure password generator
 
 **Geospatial Intelligence (God's Eye View)**
 - 3D globe with live data: flights, ships, satellites, earthquakes, fires, weather, CCTV, traffic
@@ -166,6 +173,19 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 - Screenshot, tap, swipe, type, launch/install apps, read device logs
 - Screen recording, clipboard access, GPS spoofing, orientation control
 - 35 tools auto-registered via MCP, works with Android SDK and Xcode
+
+**Productivity and Focus**
+- Ambient context radar: enumerate and monitor active windows, track app focus history
+- Sentinel watchers: condition monitors for CPU, memory, disk, processes, files, and URLs
+- Focus forge: deep work sessions with distraction tracking and session history
+- Fitness companion: health reminders (hydration, posture, eye breaks), activity logging, daily summaries
+- Universal scratchpad: quick notes with tags, full-text search, JSON-backed persistence
+- Workflow recorder: record tool sequences as named macros, list and replay workflows
+
+**Screenshot Organization (Clip Curator)**
+- Full-screen and active-window capture with metadata
+- Tag, search, and browse saved screenshots
+- JSON-indexed collection at DATA_DIR/clips
 
 **Extensibility**
 - MCP (Model Context Protocol) server support
@@ -241,7 +261,7 @@ JARVIS
 |   |-- Provider Router (8 providers, health tracking, fallback)
 |   |-- Policy Engine (tier enforcement, taint tracking)
 |   |-- Fast-Path Intent Matcher (instant commands)
-|   |-- Tool Registry (171 tools, pydantic validation)
+|   |-- Tool Registry (226 tools across 62 modules, pydantic validation)
 |   |-- Background Task Engine (SQLite, checkpointing)
 |   |-- Deep Research Pipeline (5-stage with verification)
 |   |-- Routine Engine (scheduled proactive tasks)

@@ -62,5 +62,5 @@ def apply_preset(settings_store: Any, preset_id: str) -> dict[str, Any]:
     if not preset:
         raise ValueError(f"Unknown preset: {preset_id}")
     patch = preset["settings"]
-    settings_store.patch(patch)
+    settings_store.update_settings(patch)
     return patch

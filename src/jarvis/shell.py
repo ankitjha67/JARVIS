@@ -6,7 +6,7 @@ from typing import Any
 
 import webview
 
-from .config import DATA_DIR
+from .config import DATA_DIR, ROOT
 
 
 def force_foreground() -> bool:
@@ -64,5 +64,6 @@ def run_window(url: str, window_ref: dict[str, Any], title: str = "Jarvis") -> N
         frameless=True, easy_drag=False, background_color="#05080D", text_select=True,
     )
     window_ref["win"] = window
+    ico = str(ROOT / "assets" / "logo.ico")
     # WebView2 user data would default to a folder on C:; keep it with the rest of the project data.
-    webview.start(private_mode=False, storage_path=str(DATA_DIR / "webview"))
+    webview.start(private_mode=False, storage_path=str(DATA_DIR / "webview"), icon=ico)

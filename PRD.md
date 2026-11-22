@@ -567,12 +567,17 @@ Status legend: ☐ not started · ◐ partial · ☑ done & verified
 | FR-V2 auto-send (pulled forward from M1) | ◐ | Burst detector unit-tested; needs tuning against real Wispr input |
 | FR-V3 basic spoken replies · FR-V4 barge-in | ◐ | Implemented with system voices; not listened to |
 | FR-U1–U7, U10 Console / Settings / Audit / states | ☑ | Rendered and operated in a browser at 1280×800 |
-| FR-U8 frameless window + hotkeys | ◐ | Window launches and connects; drag, resize, minimise/maximise not hand-tested. No tray icon (P1) |
+| FR-U8 frameless window + hotkeys | ◐ | Window launches and connects; drag, resize, minimise/maximise not hand-tested. Taskbar icon added (logo.ico) |
 | FR-M1, FR-M2 store + append-only audit | ☑ | pytest + Audit view |
 | SEC-1 taint · SEC-2 origin/host/token · SEC-3/4/9 shell tiers · SEC-5 redaction · SEC-6 paths · SEC-8 limits/kill switch | ☑ | 78 pytest cases |
 | NFR-2 idle footprint | ◐ | Core + window measured at ~205 MB shortly after launch; not profiled over time |
 
 **Changelog**
+
+- **1.2.0 — 2026-11-22** — **Feature Roadmap build: 55 new tools, taskbar icon, bug fixes (226 total across 62 modules).**
+  - **Taskbar icon**: `assets/logo.ico` + `webview.start(icon=...)` in `shell.py`.
+  - **13 new modules**: music_tools (search/play/lyrics), ambient_tools (window monitoring), sentinel_tools (condition watchers), focus_tools (deep work sessions), credential_tools (password strength + HIBP k-anonymity), fitness_tools (health reminders), workflow_tools (macro recording), scratchpad_tools (JSON notes), codereview_tools (git diff analysis), incident_tools (system debugging), privacy_tools (network audit), clipboard_manager_tools (history/pin), imagegen_tools (local SD), screenshot_tools (clip curator).
+  - **Bug fixes**: preset_tools (`hub.settings_store` → `hub.store`), presets.py (`.patch()` → `.update_settings()`), gods_eye_tools + mcp_catalogue_tools (`hub.settings` → `hub.store.get_settings`).
 
 - **1.1.0 — 2026-11-22** — **God's Eye View, Mobile MCP, voice calling: 7 new tools (171 total).**
   - `gods_eye_tools.py`: lifecycle management for [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view) geospatial intelligence globe. `gods_eye_setup` (clone + npm ci), `gods_eye_start` (dev server on port 4173), `gods_eye_stop`, `gods_eye_status`. MCP catalogue entry with custom install-path resolution. Auto-registers ~30 geospatial tools.

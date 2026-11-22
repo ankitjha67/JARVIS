@@ -11,6 +11,10 @@ from . import (  # noqa: F401
     research_tools, verification_tools, search_tools, quick_settings_tools,
     background_task_tools, regulatory_tools, uat_tools, case_tools, intake_tools,
     conversation_tools, persona_tools,
+    music_tools, ambient_tools, sentinel_tools, focus_tools,
+    credential_tools, fitness_tools, workflow_tools,
+    scratchpad_tools, codereview_tools, incident_tools,
+    privacy_tools, clipboard_manager_tools, imagegen_tools, screenshot_tools,
 )
 from .registry import REGISTRY, Tool, ToolError, schemas
 

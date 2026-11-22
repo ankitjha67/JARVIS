@@ -30,7 +30,7 @@ async def preset_apply(a: PresetApplyArgs) -> dict:
     hub = context._hub  # type: ignore[attr-defined]
     from ..presets import apply_preset
     try:
-        patch = apply_preset(hub.settings_store, a.preset)
+        patch = apply_preset(hub.store, a.preset)
         return {"applied": a.preset, "patch": patch}
     except ValueError as e:
         raise ToolError(str(e))

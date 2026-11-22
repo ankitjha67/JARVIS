@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from pydantic import Field
@@ -98,7 +99,7 @@ async def mcp_install(a: MCPInstallArgs) -> dict:
         raise ToolError(f"Unknown MCP server: {a.server_id}. Use mcp_catalogue to browse.")
     from . import context
     hub = context._hub  # type: ignore[attr-defined]
-    settings = hub.settings
+    settings = await asyncio.to_thread(hub.store.get_settings)
     mcp = dict(settings.get("mcp_servers", {}))
     if a.server_id in mcp:
         return {"already_installed": True, "server": a.server_id}
@@ -114,7 +115,7 @@ async def mcp_install(a: MCPInstallArgs) -> dict:
             raise ToolError("God's Eye View is not installed yet. Run gods_eye_setup first.")
         config["args"] = [str(install_dir / "server" / "mcp" / "stdio.js"), "--api-base", "http://localhost:4173"]
     mcp[a.server_id] = config
-    await hub.update_settings({"mcp_servers": mcp})
+    await asyncio.to_thread(hub.store.update_settings, {"mcp_servers": mcp})
     return {"installed": True, "server": a.server_id, "name": entry["name"],
             "needs_key": entry.get("needs_key", "")}
 
@@ -129,10 +130,10 @@ class MCPUninstallArgs(Args):
 async def mcp_uninstall(a: MCPUninstallArgs) -> dict:
     from . import context
     hub = context._hub  # type: ignore[attr-defined]
-    settings = hub.settings
+    settings = await asyncio.to_thread(hub.store.get_settings)
     mcp = dict(settings.get("mcp_servers", {}))
     if a.server_id not in mcp:
         raise ToolError(f"MCP server '{a.server_id}' is not installed.")
     mcp[a.server_id] = None
-    await hub.update_settings({"mcp_servers": mcp})
+    await asyncio.to_thread(hub.store.update_settings, {"mcp_servers": mcp})
     return {"uninstalled": True, "server": a.server_id}

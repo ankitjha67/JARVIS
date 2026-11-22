@@ -62,7 +62,8 @@ async def gods_eye_setup(a: GodsEyeSetupArgs) -> dict:
     from . import context
     hub = context._hub  # type: ignore[attr-defined]
 
-    target = Path(a.install_dir) if a.install_dir else _get_install_dir(hub.settings)
+    settings = await asyncio.to_thread(hub.store.get_settings)
+    target = Path(a.install_dir) if a.install_dir else _get_install_dir(settings)
     target = target.resolve()
 
     if (target / "package.json").exists():
@@ -91,7 +92,7 @@ async def gods_eye_setup(a: GodsEyeSetupArgs) -> dict:
     if proc.returncode != 0:
         raise ToolError(f"npm ci failed: {err.decode('utf-8', errors='replace')[:400]}")
 
-    await hub.update_settings({"gods_eye_dir": str(target)})
+    await asyncio.to_thread(hub.store.update_settings, {"gods_eye_dir": str(target)})
 
     return {"installed": True, "path": str(target), "next": "Run gods_eye_start to launch the dev server, then mcp_install gods-eye-view to connect the tools."}
 
@@ -115,7 +116,8 @@ async def gods_eye_start(a: GodsEyeStartArgs) -> dict:
     global _server_proc
     from . import context
     hub = context._hub  # type: ignore[attr-defined]
-    target = _get_install_dir(hub.settings)
+    settings = await asyncio.to_thread(hub.store.get_settings)
+    target = _get_install_dir(settings)
 
     if not (target / "package.json").exists():
         raise ToolError("God's Eye View is not installed. Run gods_eye_setup first.")
@@ -195,7 +197,8 @@ class GodsEyeStatusArgs(Args):
 async def gods_eye_status(a: GodsEyeStatusArgs) -> dict:
     from . import context
     hub = context._hub  # type: ignore[attr-defined]
-    target = _get_install_dir(hub.settings)
+    settings = await asyncio.to_thread(hub.store.get_settings)
+    target = _get_install_dir(settings)
     installed = (target / "package.json").exists()
 
     server_running = False
