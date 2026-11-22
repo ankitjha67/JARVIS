@@ -114,6 +114,22 @@ Maintained in section 9.
 
 ## 9. Session log
 
+### 2026-11-22 — God's Eye View, Mobile MCP, voice calling, 7 new tools (171 total)
+
+**Done**
+- Integrated [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view) as a managed MCP server with lifecycle tools.
+  - New module `gods_eye_tools.py`: `gods_eye_setup`, `gods_eye_start`, `gods_eye_stop`, `gods_eye_status`.
+  - MCP catalogue entry with custom install path resolution in `mcp_install`.
+  - Once running, ~30 geospatial tools auto-register (flights, ships, satellites, earthquakes, fires, weather, CCTV, military awareness).
+- Added [Mobile MCP](https://github.com/mobile-next/mobile-mcp) to catalogue (npx install, 35 tools for iOS/Android device control).
+- New module `voice_call_tools.py`: Jarvis can call the user's phone with TTS messages and DTMF approval gathering.
+  - `voice_call` — calls via Twilio (TTS + press-1-to-approve) with Phone Link fallback.
+  - `voice_call_status` — check Twilio call progress.
+  - `voice_call_config` — verify Twilio credentials are stored.
+  - Credentials stored in key vault: `twilio_sid`, `twilio_token`, `twilio_number`.
+
+**Files touched:** `tools/gods_eye_tools.py` (new), `tools/voice_call_tools.py` (new), `tools/mcp_catalogue_tools.py` (2 catalogue entries + install override), `tools/__init__.py` (2 imports), `README.md` (counts + feature sections), `CONTEXT.md` (session log), `PRD.md` (changelog).
+
 ### 2026-11-20 — Mark-LVII complex architectural features, 13 new tools (v1.0.0)
 
 **Done**

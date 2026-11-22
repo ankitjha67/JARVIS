@@ -574,6 +574,11 @@ Status legend: ☐ not started · ◐ partial · ☑ done & verified
 
 **Changelog**
 
+- **1.1.0 — 2026-11-22** — **God's Eye View, Mobile MCP, voice calling: 7 new tools (171 total).**
+  - `gods_eye_tools.py`: lifecycle management for [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view) geospatial intelligence globe. `gods_eye_setup` (clone + npm ci), `gods_eye_start` (dev server on port 4173), `gods_eye_stop`, `gods_eye_status`. MCP catalogue entry with custom install-path resolution. Auto-registers ~30 geospatial tools.
+  - MCP catalogue: added [Mobile MCP](https://github.com/mobile-next/mobile-mcp) (npx install, 35 tools for driving iOS/Android simulators, emulators, and real devices).
+  - `voice_call_tools.py`: Jarvis can call the user's phone via Twilio (TTS, DTMF approval gathering) with Phone Link fallback. `voice_call`, `voice_call_status`, `voice_call_config`. Credentials stored in key vault.
+
 - **1.0.0 — 2026-11-20** — **Mark-LVII complex architectural features: 6 new engines, 13 new tools (132 total).**
   - `background_tasks.py`: `BackgroundTaskEngine` with SQLite persistence, checkpointing, step tracking, priority queue. `TaskRunner` with asyncio semaphore concurrency (max 3), auto-queue loop, cancel support. Tasks that were running when process crashed auto-reset to `queued` on startup.
   - `deep_research.py`: `DeepResearcher` 5-stage pipeline: decompose question → parallel search sub-questions → extract claims with source indices → cross-reference claims against sources → synthesize report with citations. Confidence scoring: weighted claim confidence + source diversity + verification ratio − contradiction penalty.

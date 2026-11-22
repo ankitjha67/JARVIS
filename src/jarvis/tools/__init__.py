@@ -5,7 +5,7 @@ from . import (  # noqa: F401
     memory_tools, scheduler_tools, vision_tools, file_tools, clipboard_tools,
     skill_tools, agent_tools, homeassistant_tools, telegram_tools, dev_tools, security_tools,
     digest_tools, preset_tools,
-    buffer_tools, revenucat_tools, chrome_tools, mcp_catalogue_tools,
+    buffer_tools, revenucat_tools, chrome_tools, mcp_catalogue_tools, gods_eye_tools, voice_call_tools,
     weather_tools, youtube_tools, settings_tools, file_processor_tools,
     flight_tools, project_tools, routine_tools, timer_tools, note_tools,
     research_tools, verification_tools, search_tools, quick_settings_tools,

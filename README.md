@@ -5,20 +5,20 @@
 <h1 align="center">J.A.R.V.I.S.</h1>
 <p align="center">
   <b>Personal AI Desktop Assistant for Windows</b><br/>
-  164 tools. 8 LLM providers. Voice control. Fully configurable. One HUD.
+  171 tools. 8 LLM providers. Voice control. Fully configurable. One HUD.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12"/>
   <img src="https://img.shields.io/badge/react-19-61DAFB" alt="React 19"/>
   <img src="https://img.shields.io/badge/kotlin-jetpack_compose-7F52FF" alt="Kotlin"/>
-  <img src="https://img.shields.io/badge/tools-164-green" alt="164 Tools"/>
+  <img src="https://img.shields.io/badge/tools-171-green" alt="171 Tools"/>
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License"/>
 </p>
 
 ---
 
-JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 164 audited tools, and presents everything through a cinematic heads-up display you can control by voice or keyboard. Simple commands execute instantly through fast-path pattern matching without touching the LLM. New installs start with a guided onboarding wizard, and the assistant name, wake word, and branding are fully configurable.
+JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 171 audited tools, and presents everything through a cinematic heads-up display you can control by voice or keyboard. Simple commands execute instantly through fast-path pattern matching without touching the LLM. New installs start with a guided onboarding wizard, and the assistant name, wake word, and branding are fully configurable.
 
 Say it, see it happen, stay in control.
 
@@ -46,7 +46,7 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 - **Model Ladder**: auto-escalation across 4 tiers (fast local, fast cloud, smart, premium) based on task complexity
 - **Streaming responses** with token-by-token output and model attribution
 
-### Computer Control (164 Tools across 46 modules)
+### Computer Control (171 Tools across 48 modules)
 
 **Desktop and Windows**
 - Search and launch installed applications
@@ -71,6 +71,7 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 **Communication**
 - Email: list, read, and send via IMAP/SMTP (Gmail, Outlook, Yahoo, iCloud presets)
 - Phone calls via Windows Phone Link
+- Voice calls via Twilio with TTS: Jarvis speaks a message and gathers DTMF approval (press 1/2)
 - Telegram bot integration for remote messaging
 - Buffer integration for social media posting, scheduling, and analytics
 
@@ -153,9 +154,22 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 - Sensitive data redaction in logs
 - Credential management via Windows Credential Manager
 
+**Geospatial Intelligence (God's Eye View)**
+- 3D globe with live data: flights, ships, satellites, earthquakes, fires, weather, CCTV, traffic
+- Military awareness and situation briefs
+- One-command setup: clone, install, and launch via `gods_eye_setup` and `gods_eye_start`
+- ~30 tools auto-registered through the MCP protocol
+- Powered by [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view) (MIT, CesiumJS)
+
+**Mobile Device Control (Mobile MCP)**
+- Drive iOS and Android devices: simulators, emulators, and real devices
+- Screenshot, tap, swipe, type, launch/install apps, read device logs
+- Screen recording, clipboard access, GPS spoofing, orientation control
+- 35 tools auto-registered via MCP, works with Android SDK and Xcode
+
 **Extensibility**
 - MCP (Model Context Protocol) server support
-- Browse and install MCP servers from a catalogue
+- Browse and install MCP servers from a catalogue (22 pre-configured servers)
 - Configuration presets for quick setup
 - Custom skills and macros
 
@@ -227,7 +241,7 @@ JARVIS
 |   |-- Provider Router (8 providers, health tracking, fallback)
 |   |-- Policy Engine (tier enforcement, taint tracking)
 |   |-- Fast-Path Intent Matcher (instant commands)
-|   |-- Tool Registry (164 tools, pydantic validation)
+|   |-- Tool Registry (171 tools, pydantic validation)
 |   |-- Background Task Engine (SQLite, checkpointing)
 |   |-- Deep Research Pipeline (5-stage with verification)
 |   |-- Routine Engine (scheduled proactive tasks)
@@ -345,7 +359,7 @@ JARVIS/
 |   |-- gateway.py        # Hub class, WebSocket server, lifecycle
 |   |-- orchestrator.py   # Agent loop, tool dispatch
 |   |-- providers/        # LLM provider implementations
-|   |-- tools/            # 164 tools across 46 modules
+|   |-- tools/            # 171 tools across 48 modules
 |   |-- policy.py         # Tier enforcement, taint tracking
 |   |-- memory.py         # Long-term memory store
 |   |-- scheduler.py      # Task scheduling engine

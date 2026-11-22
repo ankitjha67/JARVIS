@@ -59,6 +59,13 @@ CATALOGUE: list[dict[str, Any]] = [
     {"id": "todoist", "name": "Todoist", "description": "Task management: create, complete, search tasks.",
      "config": {"command": "npx", "args": ["-y", "mcp-todoist"]},
      "needs_key": "todoist"},
+    {"id": "mobile-mcp", "name": "Mobile MCP",
+     "description": "Drive iOS/Android devices: screenshot, tap, swipe, type, launch/install apps, read logs, record screen. Works with simulators, emulators, and real devices.",
+     "config": {"command": "npx", "args": ["-y", "@mobilenext/mobile-mcp@latest"]}},
+    {"id": "gods-eye-view", "name": "God's Eye View",
+     "description": "3D geospatial intelligence: live flights, ships, satellites, earthquakes, fires, weather, CCTV, military awareness. Requires Node.js 24+. Use gods_eye_setup first.",
+     "config": {"command": "node", "args": ["server/mcp/stdio.js", "--api-base", "http://localhost:4173"]},
+     "needs_key": ""},
 ]
 
 
@@ -100,6 +107,12 @@ async def mcp_install(a: MCPInstallArgs) -> dict:
         config.setdefault("env", {})
         key_name = entry["needs_key"].upper()
         config["env"][f"{key_name}_API_KEY"] = f"${{secret:{entry['needs_key']}}}"
+    if a.server_id == "gods-eye-view":
+        from .gods_eye_tools import _get_install_dir
+        install_dir = _get_install_dir(settings)
+        if not (install_dir / "server" / "mcp" / "stdio.js").exists():
+            raise ToolError("God's Eye View is not installed yet. Run gods_eye_setup first.")
+        config["args"] = [str(install_dir / "server" / "mcp" / "stdio.js"), "--api-base", "http://localhost:4173"]
     mcp[a.server_id] = config
     await hub.update_settings({"mcp_servers": mcp})
     return {"installed": True, "server": a.server_id, "name": entry["name"],
