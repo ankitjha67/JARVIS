@@ -574,6 +574,10 @@ Status legend: ☐ not started · ◐ partial · ☑ done & verified
 
 **Changelog**
 
+- **1.2.1 — 2026-11-22** — **Action transparency and dry-run mode (231 total across 64 modules).**
+  - `action_history_tools.py` (3 tools): action_history (query audit log by tool/status), action_detail (inspect specific entry with args), action_summary (outcome counts + last failure). Wraps existing `store.query_audit`.
+  - `dryrun_tools.py` (2 tools): dry_run (preview what a tool would do: tier, approval, side effects, argument validation — no execution), tool_inspect (browse tools with parameters and tiers).
+
 - **1.2.0 — 2026-11-22** — **Feature Roadmap build: 55 new tools, taskbar icon, bug fixes (226 total across 62 modules).**
   - **Taskbar icon**: `assets/logo.ico` + `webview.start(icon=...)` in `shell.py`.
   - **13 new modules**: music_tools (search/play/lyrics), ambient_tools (window monitoring), sentinel_tools (condition watchers), focus_tools (deep work sessions), credential_tools (password strength + HIBP k-anonymity), fitness_tools (health reminders), workflow_tools (macro recording), scratchpad_tools (JSON notes), codereview_tools (git diff analysis), incident_tools (system debugging), privacy_tools (network audit), clipboard_manager_tools (history/pin), imagegen_tools (local SD), screenshot_tools (clip curator).

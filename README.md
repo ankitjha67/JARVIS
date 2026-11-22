@@ -5,20 +5,20 @@
 <h1 align="center">J.A.R.V.I.S.</h1>
 <p align="center">
   <b>Personal AI Desktop Assistant for Windows</b><br/>
-  226 tools. 8 LLM providers. Voice control. Fully configurable. One HUD.
+  231 tools. 8 LLM providers. Voice control. Fully configurable. One HUD.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12"/>
   <img src="https://img.shields.io/badge/react-19-61DAFB" alt="React 19"/>
   <img src="https://img.shields.io/badge/kotlin-jetpack_compose-7F52FF" alt="Kotlin"/>
-  <img src="https://img.shields.io/badge/tools-226-green" alt="226 Tools"/>
+  <img src="https://img.shields.io/badge/tools-231-green" alt="231 Tools"/>
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License"/>
 </p>
 
 ---
 
-JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 226 audited tools across 62 modules, and presents everything through a cinematic heads-up display you can control by voice or keyboard. Simple commands execute instantly through fast-path pattern matching without touching the LLM. New installs start with a guided onboarding wizard, and the assistant name, wake word, and branding are fully configurable.
+JARVIS is a full-stack personal AI assistant that runs entirely on your Windows machine. It routes requests to local or cloud LLMs, acts on your computer through 231 audited tools across 64 modules, and presents everything through a cinematic heads-up display you can control by voice or keyboard. Simple commands execute instantly through fast-path pattern matching without touching the LLM. New installs start with a guided onboarding wizard, and the assistant name, wake word, and branding are fully configurable.
 
 Say it, see it happen, stay in control.
 
@@ -46,7 +46,7 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 - **Model Ladder**: auto-escalation across 4 tiers (fast local, fast cloud, smart, premium) based on task complexity
 - **Streaming responses** with token-by-token output and model attribution
 
-### Computer Control (226 Tools across 62 modules)
+### Computer Control (231 Tools across 64 modules)
 
 **Desktop and Windows**
 - Search and launch installed applications
@@ -152,6 +152,13 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 - Built-in routines: morning briefing, end-of-day recap, health checks
 - Condition monitors with custom prompts
 - Proactive notifications (opt-in)
+
+**Action Transparency and Dry-Run Mode**
+- Action history: query the full execution log by tool name, status, or time to see what happened ("did that email send?")
+- Action detail: inspect any audit entry with full arguments and error messages
+- Action summary: quick status check showing success/failure/denial counts across recent operations
+- Dry-run preview: see exactly what a tool would do (tier, approval needed, side effects, argument validation) without executing it
+- Tool inspector: browse all available tools with their tiers, parameters, and approval requirements
 
 **Security, Privacy, and Credentials**
 - Security audit log with full action history
@@ -261,7 +268,7 @@ JARVIS
 |   |-- Provider Router (8 providers, health tracking, fallback)
 |   |-- Policy Engine (tier enforcement, taint tracking)
 |   |-- Fast-Path Intent Matcher (instant commands)
-|   |-- Tool Registry (226 tools across 62 modules, pydantic validation)
+|   |-- Tool Registry (231 tools across 64 modules, pydantic validation)
 |   |-- Background Task Engine (SQLite, checkpointing)
 |   |-- Deep Research Pipeline (5-stage with verification)
 |   |-- Routine Engine (scheduled proactive tasks)
@@ -379,7 +386,7 @@ JARVIS/
 |   |-- gateway.py        # Hub class, WebSocket server, lifecycle
 |   |-- orchestrator.py   # Agent loop, tool dispatch
 |   |-- providers/        # LLM provider implementations
-|   |-- tools/            # 171 tools across 48 modules
+|   |-- tools/            # 231 tools across 64 modules
 |   |-- policy.py         # Tier enforcement, taint tracking
 |   |-- memory.py         # Long-term memory store
 |   |-- scheduler.py      # Task scheduling engine

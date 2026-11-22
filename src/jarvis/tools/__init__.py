@@ -15,6 +15,7 @@ from . import (  # noqa: F401
     credential_tools, fitness_tools, workflow_tools,
     scratchpad_tools, codereview_tools, incident_tools,
     privacy_tools, clipboard_manager_tools, imagegen_tools, screenshot_tools,
+    action_history_tools, dryrun_tools,
 )
 from .registry import REGISTRY, Tool, ToolError, schemas
 

@@ -114,6 +114,16 @@ Maintained in section 9.
 
 ## 9. Session log
 
+### 2026-11-22 (c) — Action transparency and dry-run mode (231 total across 64 modules)
+
+**Done**
+- **2 new tool modules** (5 tools), driven by LinkedIn feedback:
+  - `action_history_tools.py` (3): action_history, action_detail, action_summary — query the audit log to check if actions completed ("did that email send?"), inspect specific entries, and get outcome summaries.
+  - `dryrun_tools.py` (2): dry_run, tool_inspect — preview what a tool would do without executing it (tier, approval, side effects, argument validation), and browse all available tools.
+- Updated README (231 tools / 64 modules), CONTEXT, PRD.
+
+**Files touched:** `tools/action_history_tools.py` (new), `tools/dryrun_tools.py` (new), `tools/__init__.py`, `README.md`, `CONTEXT.md`, `PRD.md`.
+
 ### 2026-11-22 (b) — Roadmap build: 55 new tools, taskbar icon, bug fixes (226 total across 62 modules)
 
 **Done**
