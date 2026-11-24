@@ -120,7 +120,7 @@ def test_snapshot_lists_controls_and_a_click_lands(textedit):
     assert snap["app"] == "TextEdit"
     edits = [e for e in snap["elements"] if e["type"] == "edit"]
     assert edits, f"no text area among {[e['type'] for e in snap['elements']]}"
-    assert any("snapshot me" in str(e.get("value", "")) for e in edits)
+    assert any("snapshot me" in str(e.get("value", "")).lower() for e in edits), edits
     mac.click_at(edits[0]["x"], edits[0]["y"])
     assert (host.foreground_app() or {}).get("process") == "TextEdit"
 
@@ -140,6 +140,18 @@ async def test_the_tools_themselves_work_end_to_end(textedit):
     assert (await hotkey.handler(hotkey.args_model(keys="cmd+a")))["sent"] == "cmd+a"
     apps = await REGISTRY["apps_search"].handler(REGISTRY["apps_search"].args_model(name="textedit"))
     assert "TextEdit" in apps
+
+
+def test_zoom_changes_the_frame_and_close_removes_the_window(textedit):
+    win = _textedit_windows()[0]
+    mac.window_action(win, "maximize")
+    assert _wait(lambda: _textedit_windows()[0]["rect"] != win["rect"], timeout=10), "zoom did not change the frame"
+    mac.type_text("x", clear=True)
+    mac.send_hotkey("cmd+s")  # nothing left unsaved, so closing shows no sheet
+    time.sleep(1.0)
+    count = len(_textedit_windows())
+    mac.window_action(_textedit_windows()[0], "close")
+    assert _wait(lambda: len(_textedit_windows()) < count, timeout=10), "the window did not close"
 
 
 def test_volume_can_be_set_and_read_back():

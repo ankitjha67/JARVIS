@@ -507,28 +507,28 @@ def parse_hotkey(keys: str) -> tuple[list[str], str, str]:
 
 _HOTKEY_SCRIPT = """
 on run argv
-  set kind to item 1 of argv
-  set val to item 2 of argv
+  set keyKind to item 1 of argv
+  set keyValue to item 2 of argv
   tell application "System Events"
-    set mods to {}
-    repeat with m in (rest of rest of argv)
-      set m to m as text
-      if m is "command" then set end of mods to command down
-      if m is "control" then set end of mods to control down
-      if m is "option" then set end of mods to option down
-      if m is "shift" then set end of mods to shift down
+    set keyMods to {}
+    repeat with modName in (rest of rest of argv)
+      set modName to modName as text
+      if modName is "command" then set end of keyMods to command down
+      if modName is "control" then set end of keyMods to control down
+      if modName is "option" then set end of keyMods to option down
+      if modName is "shift" then set end of keyMods to shift down
     end repeat
-    if kind is "code" then
-      if (count of mods) is 0 then
-        key code (val as integer)
+    if keyKind is "code" then
+      if (count of keyMods) is 0 then
+        key code (keyValue as integer)
       else
-        key code (val as integer) using mods
+        key code (keyValue as integer) using keyMods
       end if
     else
-      if (count of mods) is 0 then
-        keystroke val
+      if (count of keyMods) is 0 then
+        keystroke keyValue
       else
-        keystroke val using mods
+        keystroke keyValue using keyMods
       end if
     end if
   end tell
