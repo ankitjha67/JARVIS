@@ -570,9 +570,17 @@ Status legend: ☐ not started · ◐ partial · ☑ done & verified
 | FR-U8 frameless window + hotkeys | ◐ | Window launches and connects; drag, resize, minimise/maximise not hand-tested. Taskbar icon added (logo.ico) |
 | FR-M1, FR-M2 store + append-only audit | ☑ | pytest + Audit view |
 | SEC-1 taint · SEC-2 origin/host/token · SEC-3/4/9 shell tiers · SEC-5 redaction · SEC-6 paths · SEC-8 limits/kill switch | ☑ | 78 pytest cases |
+| Platform: macOS on Apple Silicon (added 1.3.0) | ◐ | 215 pytest + 12 real-desktop tests + doctor pass on GitHub's `macos-15` runner; HUD window opens there. Not yet used by a person on a Mac: voice, media keys, power, HUD interaction — see `docs/MACOS.md` |
 | NFR-2 idle footprint | ◐ | Core + window measured at ~205 MB shortly after launch; not profiled over time |
 
 **Changelog**
+
+- **1.3.0 — 2026-11-24** — **macOS support (beta, Apple Silicon).**
+  - New `jarvis.host` package owns everything OS-specific; 35 modules no longer call Win32, PowerShell or the registry directly. Windows behaviour unchanged (222 pytest pass, Windows CI green).
+  - macOS implementations for windows, typing, shortcuts, control reading and clicking, volume, media keys, lock and power, apps, search, audits, settings, hotkeys (Carbon), key storage (Keychain). 230 of 231 tools are offered on macOS.
+  - SEC-3/4/9 extended to zsh (own refusal and T3 rules; Keychain reads refused); SEC-6 extended to macOS system and credential paths; SEC-7 kept: scripts receive values as arguments, never as script text; SEC-11 kept: typing refuses secure text fields.
+  - `jarvis --doctor` self-check; CI on a macOS and a Windows runner including a desktop test that drives a real app and launches the HUD.
+  - Verified on a CI Mac only — hand testing by Mac users is open; status per feature in `docs/MACOS.md`.
 
 - **1.2.1 — 2026-11-22** — **Action transparency and dry-run mode (231 total across 64 modules).**
   - `action_history_tools.py` (3 tools): action_history (query audit log by tool/status), action_detail (inspect specific entry with args), action_summary (outcome counts + last failure). Wraps existing `store.query_audit`.

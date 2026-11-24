@@ -125,6 +125,36 @@ Maintained in section 9.
 
 ## 9. Session log
 
+### 2026-11-24 — macOS support (beta): platform layer, doctor, CI on a real Mac
+
+**Done**
+- **`jarvis.host`** (ADR 11): `__init__` (shared API: clipboard, sound, open, lock, shell argv, process trees, names such as `SHELL_NAME` / `KEYSTORE_NAME` / `TRASH_NAME` / `HOTKEYS`), `_windows` (moved Win32 primitives), `_macos` (osascript / JXA, Quartz, `say`, `afplay`, `pbcopy`, `mdfind`, `launchctl`, `networksetup`, `log`). 35 modules that called Win32, PowerShell or the registry directly now go through it. Windows code paths were left in place.
+- **macOS implementations**: window list/focus/minimize/restore/zoom/close (System Events, with a permission-free fallback from the window server), typing with password-field refusal, shortcuts, `ui_snapshot` + coordinate clicks, volume, media keys, lock, power (system confirmation dialog), apps, Spotlight search, grep content search, startup audit, launchd status, unified log, settings pages, Wi-Fi; Bluetooth and brightness through optional Homebrew helpers.
+- **Core**: Carbon global hotkeys (`Ctrl+Option+J`, `Ctrl+Option+Delete`), AppKit window activation, Keychain for keys and MCP OAuth tokens, OS-aware system prompt, `tool(..., platforms=)` (Night Light is Windows-only → 230 tools on macOS).
+- **Policy**: zsh refusal and T3 rule sets (`classify_shell(cmd, posix=)`), macOS system roots, `com.apple.TCC` / Cookies as sensitive, macOS executable types, Keychain reads through the shell refused, mounted volumes cannot be deleted.
+- **`jarvis --doctor`** (`doctor.py`): 18 read-only checks, text or `--json`.
+- **CI** (`.github/workflows/ci.yml`): pytest, HUD tests, doctor and core start on `macos-15` and `windows-latest`; `tests/test_macos_desktop.py` drives TextEdit and launches the HUD on the Mac runner.
+- **Tester kit**: `docs/MACOS.md` (install, permissions, support matrix with verified/untried status), `setup-macos.sh`, issue form `.github/ISSUE_TEMPLATE/macos-test-report.yml`, README callout.
+- Dependencies: `uiautomation` is Windows-only; uv resolves for Windows + `darwin/arm64` (lockfile gained only pyobjc and uvloop).
+
+**Verified**
+- Windows: 222 pytest pass locally (was 164), HUD build + 15 UI tests, doctor 16/16, app restarted and HUD reconnected; Windows CI green.
+- macOS (GitHub `macos-15`, arm64, macOS 15.8): 215 pytest + 12 desktop tests pass, doctor 17 pass / 1 expected warning, core answers `/api/health`, HUD window opens.
+- Bugs the Mac runner caught and that are fixed: `function down` is not valid AppleScript; `kind` is a reserved AppleScript word; zoom/close buttons must be read from the window's `AXZoomButton` / `AXCloseButton` attributes; error `-1719` means "invalid index" as well as "no assistive access", so permission errors are matched on wording; `say -v ?` separates long voice names with a single space.
+
+**Not verified (needs a person with a Mac)** — listed per feature in `docs/MACOS.md`: HUD look/drag/resize, pressing the hotkeys, media keys, lock/power, speech in and out, wake word, Wi-Fi/Bluetooth/brightness, settings links, calls, browser automation, `ui_snapshot` on heavy apps (expected slow).
+
+**Gotchas**
+- Do not write backslash-heavy Python through a Git Bash heredoc: `\\` collapses to `\` and corrupts regexes. Use the editor tools.
+- `scripts/` is git-ignored, which is why `setup-macos.sh` lives at the repo root.
+- `uv run` rebuilds the package when `pyproject.toml` changes and fails while Jarvis is running (locked `jarvis.exe`); stop Jarvis first or use `uv run --no-sync`.
+- macOS attributes permissions to the terminal app that launched Python, not to "Jarvis". A packaged `.app` would fix that and is the natural next step.
+
+**Next**
+- Act on tester reports. Package a signed `.app` (py2app or Briefcase) so permissions attach to Jarvis itself. Intel Macs need OCR moved off PyTorch.
+
+**Files touched:** `src/jarvis/host/*` (new), `errors.py` (new), `doctor.py` (new), `hotkeys.py`, `shell.py`, `__main__.py`, `clipboard.py`, `ack.py`, `speech.py`, `timers.py`, `mcp_oauth.py`, `vision.py`, `wake.py`, `policy.py`, `orchestrator.py`, `gateway.py`, 24 modules under `tools/`, `tests/test_host.py` + `tests/test_macos_desktop.py` (new), four existing test files, five UI files, `pyproject.toml`, `uv.lock`, `.github/*` (new), `docs/MACOS.md` (new), `setup-macos.sh` (new), `.gitattributes` (new), `README.md`, `CONTEXT.md`, `PRD.md`.
+
 ### 2026-11-22 (c) — Action transparency and dry-run mode (231 total across 64 modules)
 
 **Done**
