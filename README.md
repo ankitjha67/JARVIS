@@ -82,6 +82,7 @@ Rename the assistant to anything you want from Settings or during onboarding. Th
 
 **Voice and Speech**
 - Global hotkey (Ctrl+Alt+J) summons and focuses the command bar
+- Windows: closing the window keeps JARVIS running in the notification area, so the wake word and hotkey still bring it back; right-click the icon to quit. Optional start at sign-in
 - Wispr Flow dictation integration with auto-send after quiet period
 - Text-to-speech for spoken replies (toggle on/off)
 - Wake word detection ("Jarvis")

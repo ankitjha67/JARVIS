@@ -442,3 +442,14 @@ Maintained in section 9.
 - Checks: tsc clean, vite build clean. Backend starts and serves the HUD.
 
 **Not verified:** onboarding flow end-to-end with a fresh database (existing DB has `onboarding_complete: true`); wake word with a custom name on a real microphone; renaming the assistant while voice training data exists.
+
+### 2026-11-24 — Session 3, later: running in the background (Windows)
+
+- User closed the window and expected "Hey Jarvis" to bring it back. It could not: closing quit the process, and the wake word listener lives in that process.
+- **Now:** closing hides the window and Jarvis keeps running. New `src/jarvis/tray.py` (pywin32 only, no new dependency): notification-area icon with a microphone status line, Open, a wake word toggle and Quit; `summon_running_copy()` so starting Jarvis again brings the hidden copy forward instead of failing on the busy port; `set_start_at_login()` writes Jarvis's own value under HKCU `...\CurrentVersion\Run` (`pythonw -m jarvis --background`).
+- `__main__.py`: `--background` starts with the window hidden; every close path (HUD button, Alt+F4) goes through pywebview's `closing` event, which returns False and hides unless the user chose Quit or switched the setting off. The hide runs 50 ms later on a timer, not inside the close event.
+- Settings: `background.keep_running` (default on) and `background.start_at_login` (default off), under Settings → General → "Running in the background". The section and the close button's label depend on `can_background` in the `ready` message.
+- macOS is unchanged: `tray.AVAILABLE` is False there, so closing still quits.
+- Checked on this PC: 228 pytest pass (6 new in `tests/test_background.py`); on the real app, close hides and keeps the core answering, a second launch shows the window again and it repaints correctly, `--background` starts hidden, and with the setting off closing quits and removes the icon.
+- **Not verified by hand:** clicking the icon and its menu (Open, wake toggle, Quit), the first-hide notification's appearance, and an actual sign-in start. The wake word bringing the hidden window forward uses the same `bring_forward` as the second-launch test but was not spoken aloud.
+- **Finding, no code change:** with a dictation shortcut set (`voice.wake_keys`, Wispr Flow), the live text by the sphere is Jarvis's own recogniser and the text typed into the command bar is the dictation app's. They are two recognisers and disagree on quiet speech. Clearing the shortcut makes Jarvis send exactly what it showed.

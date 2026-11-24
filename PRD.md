@@ -571,10 +571,12 @@ Status legend: ☐ not started · ◐ partial · ☑ done & verified
 | FR-M1, FR-M2 store + append-only audit | ☑ | pytest + Audit view |
 | SEC-1 taint · SEC-2 origin/host/token · SEC-3/4/9 shell tiers · SEC-5 redaction · SEC-6 paths · SEC-8 limits/kill switch | ☑ | 78 pytest cases |
 | Platform: macOS on Apple Silicon (added 1.3.0) | ◐ | 215 pytest + 12 real-desktop tests + doctor pass on GitHub's `macos-15` runner; HUD window opens there. Not yet used by a person on a Mac: voice, media keys, power, HUD interaction — see `docs/MACOS.md` |
+| FR-U9 keep running when the window is closed (Windows, added 1.3.1) | ◐ | pytest + real app: close hides, second launch restores, hidden start, quit with the setting off. Icon menu and sign-in start not hand-tested |
 | NFR-2 idle footprint | ◐ | Core + window measured at ~205 MB shortly after launch; not profiled over time |
 
 **Changelog**
 
+- **1.3.1 — 2026-11-24** — **Running in the background (Windows).** Closing the window hides it instead of quitting, so the wake word and the summon hotkey keep working. Notification-area icon (microphone status, Open, wake word toggle, Quit); starting Jarvis again brings the running copy forward; optional start at sign-in (`--background`). Settings `background.keep_running` (on) and `background.start_at_login` (off). macOS unchanged. 6 new tests; icon menu and sign-in start not yet tried by hand.
 - **1.3.0 — 2026-11-24** — **macOS support (beta, Apple Silicon).**
   - New `jarvis.host` package owns everything OS-specific; 35 modules no longer call Win32, PowerShell or the registry directly. Windows behaviour unchanged (222 pytest pass, Windows CI green).
   - macOS implementations for windows, typing, shortcuts, control reading and clicking, volume, media keys, lock and power, apps, search, audits, settings, hotkeys (Carbon), key storage (Keychain). 230 of 231 tools are offered on macOS.
