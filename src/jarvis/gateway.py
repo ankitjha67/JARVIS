@@ -21,7 +21,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from . import (
-    __version__, ack, host, mcp_oauth, protocol, secrets, selfheal, speech, telemetry, voice_training, workflows,
+    __version__, ack, host, mcp_oauth, protocol, secrets, selfheal, speech, telemetry, tray, voice_training,
+    workflows,
 )
 from . import wake as wake_mod
 from .agents import AgentManager, PlanManager
@@ -66,7 +67,7 @@ log = logging.getLogger(__name__)
 HOTKEYS = host.HOTKEYS
 _SETTINGS_KEYS = {"onboarding_complete", "assistant_name", "privacy_mode", "routing", "models", "voice",
                   "max_steps", "autonomy", "email", "mcp_servers", "custom_providers", "integrations",
-                  "theme", "persona", "response_style"}
+                  "theme", "persona", "response_style", "background"}
 
 
 def allowed_origins(port: int = PORT) -> set[str]:
@@ -215,6 +216,10 @@ def validate_settings_patch(patch: dict[str, Any]) -> dict[str, Any]:
             if not isinstance(value, dict) or not set(value) <= {"homeassistant", "telegram", "file_index", "clipboard",
                                                                    "screen_history"}:
                 raise ValueError("invalid integrations settings")
+        elif key == "background":
+            if not isinstance(value, dict) or not set(value) <= {"keep_running", "start_at_login"} or not all(
+                    isinstance(v, bool) for v in value.values()):
+                raise ValueError("background settings must be true or false")
         elif key == "max_steps":
             if not (isinstance(value, int) and 1 <= value <= 40):
                 raise ValueError("max_steps must be 1–40")
@@ -298,6 +303,7 @@ class Hub:
         self.wake = WakeListener(self._on_wake, lambda: self.call_soon(self.broadcast_integrations))
         self.wake.on_level = self._on_level
         self.window_control = window_control
+        self.can_background = False  # set by the entry point once the notification-area icon is up
         # A hub given its own store (tests) must not write faults into the real data folder.
         self.faults = faults or selfheal.FaultLog(None if store is None else Path(tempfile.mkdtemp()) / "faults.json")
         self.faults.on_change = lambda: self.call_soon(self.broadcast_selfheal)
@@ -521,6 +527,25 @@ class Hub:
             except Exception:
                 log.debug("heal loop tick failed", exc_info=True)
 
+    async def set_wake_word(self, enabled: bool) -> None:
+        """Turn the wake word on or off from outside the HUD (the notification-area menu)."""
+        settings = await asyncio.to_thread(
+            self.store.update_settings, validate_settings_patch({"voice": {"wake_word": enabled}}))
+        self._apply_wake(settings)
+        await self.broadcast(msg("settings", settings=settings))
+        await self.broadcast_integrations()
+
+    def background_status(self) -> tuple[str, bool]:
+        """One line on what the microphone is doing, and whether the wake word is on. Any thread."""
+        voice = getattr(self, "_voice_settings", {}).get("voice") or {}
+        if not voice.get("wake_word"):
+            return "Wake word off · microphone not in use", False
+        if self.wake.state == "listening":
+            return "Microphone on · listening for the wake word", True
+        if self.wake.state == "error":
+            return "Wake word is on but the microphone is not working", True
+        return "Wake word starting", True
+
     def _apply_wake(self, settings: dict[str, Any]) -> None:
         voice = settings.get("voice") or {}
         aliases = list(voice.get("wake_aliases") or [])
@@ -741,7 +766,7 @@ class Hub:
             history=await self.orchestrator.history_payload(),
             approvals=self.orchestrator.pending_approvals(),
             hotkeys=HOTKEYS, busy=self.orchestrator.busy,
-            has_window=self.window_control is not None,
+            has_window=self.window_control is not None, can_background=self.can_background,
             integrations=await self.integrations(),
         )
 
@@ -789,6 +814,13 @@ class Hub:
                 except ValueError as exc:
                     await ws.send_text(json.dumps(msg("error", message=f"Setting rejected: {exc}", code="settings")))
                     return
+                if "start_at_login" in (patch.get("background") or {}):
+                    try:
+                        await asyncio.to_thread(tray.set_start_at_login, patch["background"]["start_at_login"])
+                    except OSError as exc:
+                        await ws.send_text(json.dumps(msg(
+                            "error", message=f"Could not change the sign-in entry: {exc}", code="settings")))
+                        return
                 settings = await asyncio.to_thread(self.store.update_settings, patch)
                 await self.broadcast(msg("settings", settings=settings))
                 if {"privacy_mode", "routing", "models"} & patch.keys():

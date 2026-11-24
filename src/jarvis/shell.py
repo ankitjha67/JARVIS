@@ -6,6 +6,7 @@ Isolated here so the shell can be swapped later (ADR 2).
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 from typing import Any
 
 import webview
@@ -77,15 +78,22 @@ def _force_foreground_windows() -> bool:
     return True
 
 
-def run_window(url: str, window_ref: dict[str, Any], title: str = "Jarvis") -> None:
-    """Blocks on the main thread until the window is closed."""
+def run_window(url: str, window_ref: dict[str, Any], title: str = "Jarvis", hidden: bool = False,
+               on_closing: Callable[[], bool] | None = None) -> None:
+    """Blocks on the main thread until the window is closed.
+
+    `on_closing` is asked before any close (the HUD's button, Alt+F4, the taskbar); returning False keeps the
+    window, which is how closing becomes "hide and keep running". `hidden` starts without showing the window.
+    """
     # The web view opens a native Save As dialog for report downloads.
     webview.settings["ALLOW_DOWNLOADS"] = True
     window = webview.create_window(
         title, url, width=1280, height=800, min_size=(1100, 680),
-        frameless=True, easy_drag=False, background_color="#05080D", text_select=True,
+        frameless=True, easy_drag=False, background_color="#05080D", text_select=True, hidden=hidden,
     )
     window_ref["win"] = window
+    if on_closing is not None:
+        window.events.closing += on_closing
     # Web view user data would default to a folder in the user profile; keep it with the project data.
     options: dict[str, Any] = {"private_mode": False, "storage_path": str(DATA_DIR / "webview")}
     if sys.platform == "win32":

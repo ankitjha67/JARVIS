@@ -30,6 +30,8 @@ function TitleBar() {
   const privacy = useHud((s) => s.settings?.privacy_mode);
   const name = useHud((s) => s.settings?.assistant_name) || 'J.A.R.V.I.S';
   const hasWindow = useHud((s) => s.hasWindow);
+  const hides = useHud((s) => s.canBackground && (s.settings?.background?.keep_running ?? true));
+  const closeLabel = hides ? 'Close the window (Jarvis keeps running in the background)' : 'Close and quit Jarvis';
   const killKey = useHud((s) => s.hotkeys.kill);
   const setView = useHud((s) => s.setView);
   const wake = useHud((s) => s.integrations?.wake);
@@ -56,7 +58,7 @@ function TitleBar() {
         <div className="winctl">
           <button onClick={() => send({ type: 'window.control', action: 'minimize' })} aria-label="Minimize"><Minus size={14} aria-hidden="true" /></button>
           <button onClick={() => send({ type: 'window.control', action: 'toggle_maximize' })} aria-label="Maximize or restore"><Square size={12} aria-hidden="true" /></button>
-          <button className="winctl__close" onClick={() => send({ type: 'window.control', action: 'close' })} aria-label="Close"><X size={14} aria-hidden="true" /></button>
+          <button className="winctl__close" onClick={() => send({ type: 'window.control', action: 'close' })} aria-label={closeLabel} title={closeLabel}><X size={14} aria-hidden="true" /></button>
         </div>
       )}
     </header>

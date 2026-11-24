@@ -433,9 +433,11 @@ export function SettingsView() {
   const providers = useHud((s) => s.providers);
   const hotkeys = useHud((s) => s.hotkeys);
   const version = useHud((s) => s.version);
+  const canBackground = useHud((s) => s.canBackground);
   const [tab, setTab] = useState<Tab>(initialTab);
   if (!settings) return <div className="view"><p className="muted">Loading settings…</p></div>;
   const order = settings.routing.order;
+  const background = settings.background ?? { keep_running: true, start_at_login: false };
   const move = (i: number, d: -1 | 1) => {
     const next = order.slice();
     [next[i], next[i + d]] = [next[i + d], next[i]];
@@ -567,6 +569,22 @@ export function SettingsView() {
           <span><strong>Speak replies</strong><small>{voices ? `Uses the ${OS_NAME} voices installed on this machine. Any new input stops speech.` : 'No speech voices are available in this window.'}</small></span>
         </label>
       </section>
+
+      {canBackground && (
+      <section className="card" aria-labelledby="s-background">
+        <h2 id="s-background">Running in the background</h2>
+        <label className="check">
+          <input type="checkbox" checked={background.keep_running} onChange={(e) => patch({ background: { keep_running: e.target.checked } })} />
+          <span><strong>Keep running when I close the window</strong>
+            <small>The window hides and Jarvis stays in the notification area by the clock, so {settings.voice.wake_word ? 'saying “Jarvis”' : 'the wake word, once you switch it on above,'} and <kbd>{hotkeys.summon}</kbd> still bring it back. {settings.voice.wake_word ? 'The microphone stays in use while it is hidden. ' : ''}To stop it completely, right-click the icon and choose Quit.</small></span>
+        </label>
+        <label className="check">
+          <input type="checkbox" checked={background.start_at_login} onChange={(e) => patch({ background: { start_at_login: e.target.checked } })} />
+          <span><strong>Start when I sign in to {OS_NAME}</strong>
+            <small>Starts quietly in the notification area, with no window, so it is ready to be called after a restart.</small></span>
+        </label>
+      </section>
+      )}
 
       <TrainingSection settings={settings} />
 

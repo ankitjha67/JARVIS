@@ -18,6 +18,7 @@ export interface Settings {
     stt_model: string; corrections: Record<string, string>; trained_at: string | null; tts_voice: string; wake_listen: boolean;
     listen_window_s: number; listen_pause_s: number;
     stt_engine: string; stt_cloud_model: string; tts_engine: string; tts_cloud_model: string; tts_cloud_voice: string };
+  background?: { keep_running: boolean; start_at_login: boolean };
   max_steps: number;
   autonomy: 'guarded' | 'trusted';
   theme: ThemeId;
@@ -170,6 +171,7 @@ export type ServerMessage =
       hotkeys: { summon: string; kill: string };
       busy: boolean;
       has_window: boolean;
+      can_background?: boolean;
       integrations: Integrations;
     }
   | { type: 'state'; state: AgentState; detail: string }

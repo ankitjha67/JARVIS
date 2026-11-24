@@ -48,6 +48,7 @@ export interface HudState {
   attempt: number;
   version: string;
   hasWindow: boolean;
+  canBackground: boolean;
   hotkeys: { summon: string; kill: string };
   view: View;
   agent: AgentState;
@@ -115,7 +116,7 @@ export function reduce(s: HudState, m: ServerMessage): Partial<HudState> {
       } };
     case 'ready':
       return {
-        version: m.version, hasWindow: m.has_window, hotkeys: m.hotkeys, agent: m.state, busy: m.busy,
+        version: m.version, hasWindow: m.has_window, canBackground: !!m.can_background, hotkeys: m.hotkeys, agent: m.state, busy: m.busy,
         settings: m.settings, providers: m.providers, approvals: m.approvals, integrations: m.integrations,
         events: log({ ...s, events: providerEvents(s, m.providers) }, 'ok', `core link established · v${m.version}`),
         transcript: m.history.map((h) =>
@@ -304,7 +305,7 @@ export function reduce(s: HudState, m: ServerMessage): Partial<HudState> {
 }
 
 export const initialState = {
-  conn: 'connecting' as Conn, attempt: 0, version: '', hasWindow: false,
+  conn: 'connecting' as Conn, attempt: 0, version: '', hasWindow: false, canBackground: false,
   hotkeys: { summon: 'Ctrl+Alt+J', kill: 'Ctrl+Alt+Backspace' },
   view: 'console' as View, agent: 'idle' as AgentState, agentDetail: '', busy: false, settings: null, providers: [],
   transcript: [], activity: [], approvals: [], telemetry: null, runs: null,

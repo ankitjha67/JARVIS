@@ -14,7 +14,7 @@ from typing import Any
 
 import uvicorn
 
-from . import __version__
+from . import __version__, tray
 from .config import DB_PATH, HOST, LOG_PATH, PORT, ensure_dirs
 from .gateway import Hub, create_app
 from .hotkeys import HotkeyThread
@@ -35,7 +35,9 @@ def _setup_logging(verbose: bool) -> None:
     handler: logging.Handler = logging.handlers.RotatingFileHandler(
         LOG_PATH, maxBytes=2_000_000, backupCount=3, encoding="utf-8")
     fmt = logging.Formatter('{"ts":"%(asctime)s","level":"%(levelname)s","logger":"%(name)s","msg":%(message)r}')
-    handlers = [handler, logging.StreamHandler(sys.stderr)]
+    handlers = [handler]
+    if sys.stderr is not None:  # there is no console when Windows starts Jarvis at sign-in
+        handlers.append(logging.StreamHandler(sys.stderr))
     for h in handlers:
         h.setFormatter(fmt)
         h.addFilter(_RedactFilter())
@@ -47,6 +49,8 @@ def _setup_logging(verbose: bool) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(prog="jarvis", description="Jarvis desktop assistant")
     parser.add_argument("--no-window", action="store_true", help="run the core only and print the HUD URL")
+    parser.add_argument("--background", action="store_true",
+                        help="start without showing the window (used when starting at sign-in)")
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--doctor", action="store_true",
@@ -57,6 +61,8 @@ def main() -> None:
         from . import doctor
 
         sys.exit(doctor.main(as_json=args.json))
+    if not args.no_window and tray.summon_running_copy():
+        return  # Jarvis is already running, perhaps hidden: its window has been asked to come forward
     _setup_logging(args.verbose)
     log = logging.getLogger("jarvis")
 
@@ -65,6 +71,7 @@ def main() -> None:
     url = f"http://{HOST}:{PORT}/#t={token}"
 
     window_ref: dict[str, Any] = {}
+    background: dict[str, Any] = {"quitting": False, "told": False, "icon": None}
 
     def window_control(action: str) -> None:
         win = window_ref.get("win")
@@ -75,6 +82,44 @@ def main() -> None:
         elif action == "toggle_maximize":
             _toggle_max(win, window_ref)
         elif action == "close":
+            win.destroy()  # asks closing() below, which hides the window instead when Jarvis is to keep running
+
+    def closing() -> bool:
+        """Called for every way of closing the window. False keeps it: Jarvis hides and stays running."""
+        icon = background["icon"]
+        if background["quitting"] or icon is None or not icon.active:
+            return True
+        try:
+            keep = bool((hub.store.get_settings().get("background") or {}).get("keep_running", True))
+        except Exception:
+            log.exception("could not read the background setting; closing normally")
+            return True
+        if not keep:
+            return True
+        # Hiding must not happen inside the close event itself, so it is done a moment later.
+        threading.Timer(0.05, hide_window).start()
+        return False
+
+    def hide_window() -> None:
+        win = window_ref.get("win")
+        if not win:
+            return
+        try:
+            win.hide()
+        except Exception:
+            log.exception("hiding the window failed")
+            return
+        icon = background["icon"]
+        if icon is not None and not background["told"]:
+            background["told"] = True
+            line, _ = hub.background_status()
+            icon.notify(f"{icon.name} is still running",
+                        f"{line}. Click this icon to open it, or right-click it to quit.")
+
+    def quit_app() -> None:
+        background["quitting"] = True
+        win = window_ref.get("win")
+        if win:
             win.destroy()
 
     hub = Hub(token, window_control=None if args.no_window else window_control)
@@ -115,6 +160,22 @@ def main() -> None:
     hub.summon = bring_forward
     hotkeys = HotkeyThread(summon, kill)
     hotkeys.start()
+    if not args.no_window and tray.AVAILABLE:
+        stored = hub.store.get_settings()
+        name = (stored.get("assistant_name") or "J.A.R.V.I.S").replace(".", "")
+        icon = tray.Tray(name, on_open=summon, on_quit=quit_app,
+                         on_toggle_wake=lambda on: hub.call_soon(lambda: hub.set_wake_word(on)),
+                         status=hub.background_status)
+        if icon.start():
+            background["icon"] = icon
+            hub.can_background = True
+        else:
+            log.warning("no notification-area icon, so closing the window will quit Jarvis")
+        try:  # keep the sign-in entry pointing at this copy if it was moved, and the setting honest if removed
+            if bool((stored.get("background") or {}).get("start_at_login")) != tray.starts_at_login():
+                tray.set_start_at_login(bool((stored.get("background") or {}).get("start_at_login")))
+        except OSError:
+            log.warning("could not update the sign-in entry", exc_info=True)
     log.info("Jarvis %s core listening on %s:%s", __version__, HOST, PORT)
 
     try:
@@ -127,10 +188,13 @@ def main() -> None:
 
             settings = Store(DB_PATH).get_settings()
             title = (settings.get("assistant_name") or "J.A.R.V.I.S").replace(".", "")
-            run_window(url, window_ref, title=title)
+            hidden = args.background and background["icon"] is not None  # never hidden with no way to reach it
+            run_window(url, window_ref, title=title, hidden=hidden, on_closing=closing)
     except KeyboardInterrupt:
         pass
     finally:
+        if background["icon"] is not None:
+            background["icon"].stop()
         hotkeys.stop()
         server.should_exit = True
         server_thread.join(timeout=8)

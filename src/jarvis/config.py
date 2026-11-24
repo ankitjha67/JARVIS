@@ -93,6 +93,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
               # Speech engines (see speech.py). "local"/"system" stay on this computer.
               "stt_engine": "local", "stt_cloud_model": "", "tts_engine": "system", "tts_cloud_model": "",
               "tts_cloud_voice": ""},  # how long to listen; act sooner after this much quiet
+    # Windows: closing the window keeps Jarvis running (wake word, hotkeys) behind a notification-area icon.
+    "background": {"keep_running": True, "start_at_login": False},
     "max_steps": 25,
     "autonomy": "guarded",  # guarded | trusted (see policy.decide)
     "email": {"address": "", "imap_host": "", "imap_port": 993, "smtp_host": "", "smtp_port": 465},
