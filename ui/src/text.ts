@@ -35,3 +35,8 @@ export function parsePairs(text: string): Record<string, string> | null {
   }
   return out;
 }
+
+/** The HUD runs inside the OS web view, so the browser's own platform string tells the two apart. */
+export const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform || navigator.userAgent);
+export const KEY_STORE = IS_MAC ? 'the macOS Keychain' : 'Windows Credential Manager';
+export const OS_NAME = IS_MAC ? 'macOS' : 'Windows';

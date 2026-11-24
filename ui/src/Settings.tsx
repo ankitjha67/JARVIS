@@ -6,6 +6,7 @@ import { TrainingSection } from './Training';
 import type { PrivacyMode, ProviderStatus, Settings as SettingsT, ThemeId, ToolInfo } from './protocol';
 import { send } from './socket';
 import { useHud } from './store';
+import { IS_MAC, KEY_STORE, OS_NAME } from './text';
 
 const patch = (p: Partial<SettingsT> | Record<string, unknown>) => send({ type: 'settings.set', patch: p });
 
@@ -71,7 +72,7 @@ function ProviderCard({ p, chosen }: { p: ProviderStatus; chosen: string | null 
       {p.detail && p.state !== 'ok' && <p className="pcard__detail">{p.detail}</p>}
       {p.needs_key && (
         <form className="field" onSubmit={(e) => { e.preventDefault(); if (key.trim()) saveKey(key.trim()); }}>
-          <label htmlFor={`key-${p.id}`}>API key {p.has_key && <span className="ok">· stored in Windows Credential Manager</span>}</label>
+          <label htmlFor={`key-${p.id}`}>API key {p.has_key && <span className="ok">· stored in {KEY_STORE}</span>}</label>
           <div className="field__row">
             <input id={`key-${p.id}`} type="password" autoComplete="off" spellCheck={false} value={key}
               placeholder={p.has_key ? 'Enter a new key to replace the stored one' : 'Paste your key'} onChange={(e) => setKey(e.target.value)} />
@@ -157,7 +158,7 @@ function SpeechEngines({ settings }: { settings: SettingsT }) {
           <button className="btn" type="button" onClick={() => send({ type: 'voice.preview', voice: '' })}>Hear it</button>
         </div>
       </div>
-      {tts && <p className={`field__help${tts.ready ? '' : ' warn'}`}>{tts.ready ? tts.note || `Voice: ${v.tts_cloud_voice || tts.voice || 'default'}` : `Add a key named “${tts.id}” under Keys first. Until then Jarvis uses the Windows voice.`}</p>}
+      {tts && <p className={`field__help${tts.ready ? '' : ' warn'}`}>{tts.ready ? tts.note || `Voice: ${v.tts_cloud_voice || tts.voice || 'default'}` : `Add a key named “${tts.id}” under Keys first. Until then Jarvis uses the ${OS_NAME} voice.`}</p>}
       {v.tts_engine !== 'system' && (
         <div className="field field--inline">
           <label htmlFor="tts-cloud-voice">Voice id (optional)</label>
@@ -173,7 +174,7 @@ function VoicePicker({ settings }: { settings: SettingsT }) {
   const voices = useHud((s) => s.integrations?.voices ?? null);
   const fallback = useHud((s) => s.integrations?.default_voice ?? '');
   const current = settings.voice.tts_voice || fallback;
-  if (!voices || voices.length === 0) return <p className="field__help">No English voices are installed in Windows.</p>;
+  if (!voices || voices.length === 0) return <p className="field__help">No English voices are installed in {OS_NAME}.</p>;
   return (
     <div className="field field--inline">
       <label htmlFor="tts-voice">Jarvis's voice</label>
@@ -211,7 +212,7 @@ function WakeControls({ settings }: { settings: SettingsT }) {
               : 'Starting the microphone…'}
           </p>
           {wake?.silent && (
-            <p className="callout callout--warn" role="alert">The microphone is sending silence, so Jarvis cannot hear you. Check the keyboard's microphone-mute key, the input device and level in Windows Sound settings, and that desktop apps are allowed to use the microphone (Settings → Privacy → Microphone).</p>
+            <p className="callout callout--warn" role="alert">The microphone is sending silence, so Jarvis cannot hear you. Check the keyboard's microphone-mute key, the input device and level in {OS_NAME} Sound settings, and that {IS_MAC ? 'the app you start Jarvis from is allowed to use the microphone (System Settings → Privacy & Security → Microphone)' : 'desktop apps are allowed to use the microphone (Settings → Privacy → Microphone)'}.</p>
           )}
           {live && (
             <dl className="micmeter">
@@ -563,7 +564,7 @@ export function SettingsView() {
         </div>
         <label className="check">
           <input type="checkbox" checked={settings.voice.speak} disabled={!voices} onChange={(e) => patch({ voice: { speak: e.target.checked } })} />
-          <span><strong>Speak replies</strong><small>{voices ? 'Uses the Windows voices installed on this machine. Any new input stops speech.' : 'No speech voices are available in this window.'}</small></span>
+          <span><strong>Speak replies</strong><small>{voices ? `Uses the ${OS_NAME} voices installed on this machine. Any new input stops speech.` : 'No speech voices are available in this window.'}</small></span>
         </label>
       </section>
 

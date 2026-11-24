@@ -1,4 +1,4 @@
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import pytest
 
@@ -45,14 +45,14 @@ def test_t3_always_asks_and_is_never_rememberable():
     "Set-Content a.txt 'x'", "bcdedit /set x",
 ])
 def test_destructive_shell_is_t3(cmd):
-    assert classify_shell(cmd)[0] == Tier.T3
+    assert classify_shell(cmd, posix=False)[0] == Tier.T3
 
 
 @pytest.mark.parametrize("cmd", ["Get-ChildItem", "Get-Process | Sort-Object CPU", "git status", "python --version",
                                  "Get-Content a.txt 2>&1", "ipconfig /all", "Get-Date -Format o",
                                  "Get-Process | Format-Table Name"])
 def test_benign_shell_is_t2(cmd):
-    assert classify_shell(cmd)[0] == Tier.T2
+    assert classify_shell(cmd, posix=False)[0] == Tier.T2
 
 
 @pytest.mark.parametrize("cmd", ["Start-Process cmd -Verb RunAs", "runas /user:Administrator cmd", "sudo ls",
@@ -70,12 +70,12 @@ def test_plain_command_not_refused():
     r"C:\Users\a\AppData\Local\Google\Chrome\User Data\Default\Login Data", r"C:\x\keys.kdbx", r"C:\Users\a\.aws\credentials",
 ])
 def test_sensitive_paths(p):
-    assert is_sensitive_path(Path(p))
+    assert is_sensitive_path(PureWindowsPath(p))
 
 
 @pytest.mark.parametrize("p", [r"C:\Users\a\Documents\resume.pdf", r"E:\Python\Jarvis\PRD.md", r"C:\x\environment.txt"])
 def test_ordinary_paths(p):
-    assert not is_sensitive_path(Path(p))
+    assert not is_sensitive_path(PureWindowsPath(p))
 
 
 def test_canonical_resolves_traversal():

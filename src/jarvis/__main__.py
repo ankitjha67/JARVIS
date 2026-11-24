@@ -49,7 +49,14 @@ def main() -> None:
     parser.add_argument("--no-window", action="store_true", help="run the core only and print the HUD URL")
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("--doctor", action="store_true",
+                        help="check what works on this computer and print a report, then exit")
+    parser.add_argument("--json", action="store_true", help="with --doctor: print the report as JSON")
     args = parser.parse_args()
+    if args.doctor:
+        from . import doctor
+
+        sys.exit(doctor.main(as_json=args.json))
     _setup_logging(args.verbose)
     log = logging.getLogger("jarvis")
 

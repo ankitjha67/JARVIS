@@ -1,12 +1,12 @@
-"""PowerShell execution (FR-T6). Never elevated, always approved, bounded in time and output."""
+"""Shell execution (FR-T6): PowerShell on Windows, zsh on macOS. Never elevated, always approved, bounded."""
 
 from __future__ import annotations
 
 import asyncio
-import subprocess
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier, canonical, classify_shell, shell_refusal
 from .registry import Args, ToolError, tool
 
@@ -14,7 +14,7 @@ OUTPUT_CAP = 16_000
 
 
 class ShellArgs(Args):
-    command: str = Field(..., min_length=1, max_length=4000, description="PowerShell command line")
+    command: str = Field(..., min_length=1, max_length=4000, description=f"{host.SHELL_NAME} command line")
     cwd: str | None = Field(None, max_length=400, description="Working directory (defaults to the user's home)")
     timeout_s: int = Field(60, ge=1, le=600)
 
@@ -32,16 +32,11 @@ def _short(a: ShellArgs) -> str:
 
 
 async def _kill_tree(pid: int) -> None:
-    killer = await asyncio.create_subprocess_exec(
-        "taskkill.exe", "/PID", str(pid), "/T", "/F",
-        stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
-        creationflags=subprocess.CREATE_NO_WINDOW,
-    )
-    await killer.wait()
+    await asyncio.to_thread(host.kill_tree, pid)
 
 
 @tool("shell_run",
-      "Run a PowerShell command as the current (non-administrator) user and return its output. "
+      f"Run a {host.SHELL_NAME} command as the current (non-administrator) user and return its output. "
       "Use only when no dedicated tool fits.",
       ShellArgs, Tier.T2, taints=True, summary=_short, classify=_classify, sensitive=True)
 async def shell_run(a: ShellArgs) -> dict:
@@ -49,10 +44,10 @@ async def shell_run(a: ShellArgs) -> dict:
     if not cwd.is_dir():
         raise ToolError(f"Working directory {cwd} does not exist.")
     proc = await asyncio.create_subprocess_exec(
-        "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", a.command,
+        *host.shell_argv(a.command),
         cwd=str(cwd), stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-        creationflags=subprocess.CREATE_NO_WINDOW,
+        **host.child_kwargs(),
     )
     try:
         out, err = await asyncio.wait_for(proc.communicate(), timeout=a.timeout_s)

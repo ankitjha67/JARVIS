@@ -14,6 +14,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from . import host
+
 log = logging.getLogger(__name__)
 
 _SCHEMA = """
@@ -79,32 +81,23 @@ class ClipboardHistory:
         self._running = False
 
     def _monitor(self) -> None:
+        last_count: int | None = None
         while self._running:
             try:
-                import win32clipboard
-                win32clipboard.OpenClipboard()
-                try:
-                    if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_UNICODETEXT):
-                        text = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
-                        if text and text != self._last_text and not _looks_like_secret(text):
-                            self._last_text = text
-                            self._store(text[:MAX_TEXT_LEN])
-                finally:
-                    win32clipboard.CloseClipboard()
+                # Where the OS counts clipboard changes (macOS), only read the text when the count moved.
+                count = host.clipboard_change_count()
+                if count is None or count != last_count:
+                    last_count = count
+                    text = host.clipboard_get()
+                    if text and text != self._last_text and not _looks_like_secret(text):
+                        self._last_text = text
+                        self._store(text[:MAX_TEXT_LEN])
             except Exception:
                 pass
             time.sleep(1.0)
 
     def _store(self, text: str) -> None:
-        try:
-            import ctypes
-            user32 = ctypes.windll.user32  # type: ignore[attr-defined]
-            hwnd = user32.GetForegroundWindow()
-            buf = ctypes.create_unicode_buffer(256)
-            user32.GetWindowTextW(hwnd, buf, 256)
-            app = buf.value[:100]
-        except Exception:
-            app = ""
+        app = host.foreground_title()[:100]
         self._db.execute("INSERT INTO clipboard_history(text, app, copied_at) VALUES(?,?,?)",
                          (text, app, _now()))
         self._db.execute("DELETE FROM clipboard_history WHERE id NOT IN "

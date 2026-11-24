@@ -52,8 +52,12 @@ def test_scoring_a_real_reading_end_to_end(monkeypatch, tmp_path):
     import subprocess
     import wave
 
+    import sys
+
     import pytest
 
+    if sys.platform != "win32":
+        pytest.skip("needs Windows speech synthesis")
     np = pytest.importorskip("numpy")
     pytest.importorskip("faster_whisper")
     from jarvis import wake

@@ -11,6 +11,7 @@ from pathlib import Path
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
@@ -99,7 +100,7 @@ def _scaffold_html(root: Path, desc: str) -> list[str]:
 
 def _scaffold_cli(root: Path, name: str, cmd: list[str]) -> list[str]:
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, cwd=str(root.parent),
-                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                            creationflags=host.NO_WINDOW)
     if result.returncode != 0:
         raise ToolError(f"Scaffold command failed: {(result.stderr or result.stdout)[:500]}")
     if not root.exists():

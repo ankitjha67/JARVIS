@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import subprocess
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
-_CREATE_NO_WINDOW = subprocess.CREATE_NO_WINDOW
+_CREATE_NO_WINDOW = host.NO_WINDOW
 
 
 def _ps(script: str, *, timeout: int = 15) -> subprocess.CompletedProcess[str]:
@@ -29,6 +29,11 @@ class BrightnessArgs(Args):
 
 
 def _brightness(a: BrightnessArgs) -> dict:
+    if host.IS_MAC:
+        host.mac.set_brightness(a.percent)
+        return {"brightness_percent": a.percent}
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Brightness control")
     r = _ps(
         f"(Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightnessMethods)"
         f".WmiSetBrightness(1,{a.percent})"
@@ -55,6 +60,11 @@ class WifiArgs(Args):
 
 def _wifi(a: WifiArgs) -> dict:
     state = "enabled" if a.enable else "disabled"
+    if host.IS_MAC:
+        host.mac.set_wifi(a.enable)
+        return {"wifi": state}
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Switching Wi-Fi")
     r = subprocess.run(
         ["netsh", "interface", "set", "interface", "Wi-Fi", f"admin={state}"],
         capture_output=True, text=True, timeout=15,
@@ -81,6 +91,11 @@ class BluetoothArgs(Args):
 
 def _bluetooth(a: BluetoothArgs) -> dict:
     desired = "On" if a.enable else "Off"
+    if host.IS_MAC:
+        host.mac.set_bluetooth(a.enable)
+        return {"bluetooth": desired.lower()}
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Switching Bluetooth")
     script = (
         "[Windows.Devices.Radios.Radio, Windows.System.Devices, ContentType=WindowsRuntime] | Out-Null; "
         "$radios = [Windows.Devices.Radios.Radio]::GetRadiosAsync().GetAwaiter().GetResult(); "
@@ -132,11 +147,16 @@ _SETTINGS_URIS = {
 }
 
 
-@tool("open_settings", "Open a Windows Settings page by name.",
+@tool("open_settings", f"Open a {host.NAME} settings page by name.",
       OpenSettingsArgs, Tier.T1, summary=lambda a: f"Open {a.page} settings")
 async def open_settings(a: OpenSettingsArgs) -> dict:
     uri = _SETTINGS_URIS.get(a.page)
     if not uri:
         raise ToolError(f"Unknown settings page '{a.page}'. Available: {', '.join(sorted(_SETTINGS_URIS))}")
-    await asyncio.to_thread(os.startfile, uri)
+    if host.IS_MAC:
+        uri = host.mac.settings_uri(a.page)
+    try:
+        await asyncio.to_thread(host.open_uri, uri)
+    except OSError as exc:
+        raise ToolError(f"{host.NAME} could not open that settings page.") from exc
     return {"opened": a.page, "uri": uri}

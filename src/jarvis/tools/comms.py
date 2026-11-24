@@ -11,7 +11,6 @@ import email
 import email.policy
 import html
 import imaplib
-import os
 import re
 import smtplib
 import ssl
@@ -22,6 +21,7 @@ from typing import Any
 from pydantic import Field
 
 from .. import secrets
+from .. import host
 from ..policy import Tier
 from . import context
 from .registry import Args, ToolError, tool
@@ -212,16 +212,23 @@ class CallArgs(Args):
     number: str = Field(..., pattern=r"^\+?[0-9][0-9 ()\-]{2,22}$", description="Phone number, ideally with country code")
 
 
-@tool("call_start",
-      "Start a phone call to a number using the Windows calling app (Phone Link with a paired phone, or "
-      "another app registered for calls).",
+_CALL_HELP = (
+    "Start a phone call to a number using FaceTime (calls go through a nearby iPhone signed in to the same "
+    "Apple ID), or another app registered for calls." if host.IS_MAC else
+    "Start a phone call to a number using the Windows calling app (Phone Link with a paired phone, or "
+    "another app registered for calls).")
+
+
+@tool("call_start", _CALL_HELP,
       CallArgs, Tier.T2, sensitive=True, summary=lambda a: f"Call {a.number}")
 async def call_start(a: CallArgs) -> dict:
     digits = re.sub(r"[^\d+]", "", a.number)
     try:
-        await asyncio.to_thread(os.startfile, f"tel:{digits}")
+        await asyncio.to_thread(host.open_uri, f"tel:{digits}")
     except OSError as exc:
-        raise ToolError("No app on this PC is set up to place calls. Pair your phone in Phone Link first.") from exc
+        raise ToolError("No app on this Mac is set up to place calls. Turn on iPhone calls in FaceTime first."
+                        if host.IS_MAC else
+                        "No app on this PC is set up to place calls. Pair your phone in Phone Link first.") from exc
     return {"dialling": digits, "note": "The calling app has been opened with the number; it may ask you to confirm."}
 
 
@@ -248,8 +255,15 @@ def _classify_settings(a: SettingsArgs) -> tuple[Tier, str]:
     return Tier.T1, ""
 
 
-@tool("settings_open", "Open a page of Windows Settings (then use ui_snapshot / ui_click to change something).",
-      SettingsArgs, Tier.T1, classify=_classify_settings, summary=lambda a: f"Open Windows Settings: {a.page}")
+_SETTINGS_APP = "System Settings" if host.IS_MAC else "Windows Settings"
+
+
+@tool("settings_open", f"Open a page of {_SETTINGS_APP} (then use ui_snapshot / ui_click to change something).",
+      SettingsArgs, Tier.T1, classify=_classify_settings, summary=lambda a: f"Open {_SETTINGS_APP}: {a.page}")
 async def settings_open(a: SettingsArgs) -> dict:
-    await asyncio.to_thread(os.startfile, f"ms-settings:{_SETTINGS_PAGES[a.page]}")
+    uri = host.mac.settings_uri(a.page) if host.IS_MAC else f"ms-settings:{_SETTINGS_PAGES[a.page]}"
+    try:
+        await asyncio.to_thread(host.open_uri, uri)
+    except OSError as exc:
+        raise ToolError(f"{_SETTINGS_APP} could not be opened.") from exc
     return {"opened": a.page}

@@ -1,7 +1,11 @@
-"""HUD window on the system WebView2 runtime. Isolated here so the shell can be swapped later (ADR 2)."""
+"""HUD window on the system web view (WebView2 on Windows, WKWebView on macOS).
+
+Isolated here so the shell can be swapped later (ADR 2).
+"""
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 import webview
@@ -10,9 +14,27 @@ from .config import DATA_DIR, ROOT
 
 
 def force_foreground() -> bool:
-    """Raise and focus the HUD window, even though another app has focus.
+    """Raise and focus the HUD window, even though another app has focus."""
+    if sys.platform == "darwin":
+        return _activate_macos()
+    if sys.platform != "win32":
+        return False
+    return _force_foreground_windows()
 
-    Windows refuses SetForegroundWindow from a background process unless that process just received input,
+
+def _activate_macos() -> bool:
+    try:
+        from AppKit import NSApplication
+        from PyObjCTools import AppHelper
+    except ImportError:
+        return False
+    # AppKit may only be touched from the main thread; the wake word and hotkeys call from others.
+    AppHelper.callAfter(lambda: NSApplication.sharedApplication().activateIgnoringOtherApps_(True))
+    return True
+
+
+def _force_foreground_windows() -> bool:
+    """Windows refuses SetForegroundWindow from a background process unless that process just received input,
     so a synthetic Alt tap is sent first; a brief always-on-top flip guarantees the window is at least
     visible above everything else if focus is still refused.
     """
@@ -57,13 +79,15 @@ def force_foreground() -> bool:
 
 def run_window(url: str, window_ref: dict[str, Any], title: str = "Jarvis") -> None:
     """Blocks on the main thread until the window is closed."""
-    # WebView2 opens a native Save As dialog for report downloads.
+    # The web view opens a native Save As dialog for report downloads.
     webview.settings["ALLOW_DOWNLOADS"] = True
     window = webview.create_window(
         title, url, width=1280, height=800, min_size=(1100, 680),
         frameless=True, easy_drag=False, background_color="#05080D", text_select=True,
     )
     window_ref["win"] = window
-    ico = str(ROOT / "assets" / "logo.ico")
-    # WebView2 user data would default to a folder on C:; keep it with the rest of the project data.
-    webview.start(private_mode=False, storage_path=str(DATA_DIR / "webview"), icon=ico)
+    # Web view user data would default to a folder in the user profile; keep it with the project data.
+    options: dict[str, Any] = {"private_mode": False, "storage_path": str(DATA_DIR / "webview")}
+    if sys.platform == "win32":
+        options["icon"] = str(ROOT / "assets" / "logo.ico")
+    webview.start(**options)

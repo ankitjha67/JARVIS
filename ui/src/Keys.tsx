@@ -3,7 +3,7 @@ import { Check, KeyRound, Plus, Trash2 } from 'lucide-react';
 import type { Settings as SettingsT } from './protocol';
 import { send } from './socket';
 import { useHud } from './store';
-import { detectProvider, isValidName } from './text';
+import { KEY_STORE, detectProvider, isValidName } from './text';
 
 const patch = (p: Record<string, unknown>) => send({ type: 'settings.set', patch: p });
 
@@ -58,7 +58,7 @@ export function KeysSection({ settings }: { settings: SettingsT }) {
   return (
     <section className="card" aria-labelledby="s-keys">
       <h2 id="s-keys">API keys</h2>
-      <p className="muted">Every key is stored in Windows Credential Manager. Jarvis never shows a stored key again, never sends it to a model, and masks it in logs and the audit trail.</p>
+      <p className="muted">Every key is stored in {KEY_STORE}. Jarvis never shows a stored key again, never sends it to a model, and masks it in logs and the audit trail.</p>
 
       <h3 className="card__sub">Language models</h3>
       <ul className="keycats">

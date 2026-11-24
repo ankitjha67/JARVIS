@@ -1,0 +1,58 @@
+name: macOS test report
+description: You tried Jarvis on a Mac — tell us what worked and what did not.
+title: "[macOS] "
+labels: ["macos", "test-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing. The macOS build is new and has only been verified on automated runners, so a
+        report from a real Mac is exactly what we need. Setup and the checklist are in `docs/MACOS.md`.
+  - type: input
+    id: mac
+    attributes:
+      label: Mac and macOS version
+      placeholder: "MacBook Air M2, macOS 15.1"
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `uv run jarvis --doctor`
+      description: Paste the whole report. It contains no keys or personal files; check the window titles before posting.
+      render: text
+    validations:
+      required: true
+  - type: checkboxes
+    id: worked
+    attributes:
+      label: What worked
+      options:
+        - label: Setup script finished without errors
+        - label: The HUD window opened and showed "online"
+        - label: Onboarding completed and a model answered a message
+        - label: Ctrl+Option+J brought the window forward
+        - label: Ctrl+Option+Delete stopped a running task
+        - label: Opening an app by name ("open Safari")
+        - label: Listing and focusing windows
+        - label: Volume and media keys
+        - label: Clipboard read and write
+        - label: Shell command with the approval card
+        - label: File search and file tools
+        - label: Typing and shortcuts into another app
+        - label: Reading a window's controls (ui_snapshot) and clicking one
+        - label: Screenshot / "what is on my screen"
+        - label: Spoken replies
+        - label: Wake word
+  - type: textarea
+    id: broken
+    attributes:
+      label: What did not work
+      description: What you asked, what happened, and any error text shown in the HUD. The log is at `data/jarvis.log`.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Rough edges, confusing permission prompts, things that felt slow.

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
@@ -16,24 +17,11 @@ _MAX_HISTORY = 50
 
 
 def _read_clipboard() -> str:
-    import win32clipboard
-    win32clipboard.OpenClipboard()
-    try:
-        if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_UNICODETEXT):
-            return win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
-    finally:
-        win32clipboard.CloseClipboard()
-    return ""
+    return host.clipboard_get() or ""
 
 
 def _write_clipboard(text: str) -> None:
-    import win32clipboard
-    win32clipboard.OpenClipboard()
-    try:
-        win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
-    finally:
-        win32clipboard.CloseClipboard()
+    host.clipboard_set(text)
 
 
 # ---------------------------------------------------------------------------

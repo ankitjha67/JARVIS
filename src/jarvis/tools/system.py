@@ -9,6 +9,7 @@ import psutil
 from pydantic import Field
 
 from .. import telemetry
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
@@ -54,7 +55,10 @@ class ProcessKillArgs(Args):
 
 
 _PROTECTED = {"system", "registry", "smss.exe", "csrss.exe", "wininit.exe", "winlogon.exe", "services.exe",
-              "lsass.exe", "svchost.exe", "dwm.exe", "explorer.exe", "fontdrvhost.exe", "memory compression"}
+              "lsass.exe", "svchost.exe", "dwm.exe", "explorer.exe", "fontdrvhost.exe", "memory compression",
+              # macOS: ending these logs the user out or takes the desktop down
+              "launchd", "kernel_task", "windowserver", "loginwindow", "finder", "dock", "systemuiserver",
+              "securityd", "opendirectoryd", "coreservicesd", "cfprefsd", "tccd"}
 
 
 def _kill(a: ProcessKillArgs) -> dict:
@@ -64,7 +68,7 @@ def _kill(a: ProcessKillArgs) -> dict:
         proc = psutil.Process(a.pid)
         name = proc.name()
         if name.lower() in _PROTECTED:
-            raise ToolError(f"{name} is a protected Windows process and will not be terminated.")
+            raise ToolError(f"{name} is a protected {host.NAME} process and will not be terminated.")
         proc.terminate()
         try:
             proc.wait(timeout=5)

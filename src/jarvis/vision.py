@@ -42,6 +42,16 @@ def capture_screen(monitor: int = 0, region: tuple[int, int, int, int] | None = 
 
 def capture_window(title: str = "") -> bytes | None:
     """Capture a specific window by title substring."""
+    import sys
+
+    if sys.platform == "darwin":
+        from .host import mac
+
+        region = mac.window_rect(title)
+        return capture_screen(region=region) if region else None
+    if sys.platform != "win32":
+        return None
+
     import ctypes
     import ctypes.wintypes
 
@@ -174,12 +184,9 @@ class ScreenHistory:
         self._running = True
         while self._running:
             try:
-                import ctypes
-                user32 = ctypes.windll.user32  # type: ignore[attr-defined]
-                hwnd = user32.GetForegroundWindow()
-                buf = ctypes.create_unicode_buffer(256)
-                user32.GetWindowTextW(hwnd, buf, 256)
-                app = buf.value
+                from . import host
+
+                app = host.foreground_title()[:256]
 
                 png = capture_screen()
                 text = ocr_local(png)

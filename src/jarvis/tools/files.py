@@ -11,13 +11,14 @@ from pathlib import Path
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier, canonical, is_executable_file, is_sensitive_path, is_system_path
 from .registry import Args, ToolError, tool
 
 READ_CAP = 64 * 1024
 WRITE_CAP = 1024 * 1024
 _SKIP_DIRS = {"node_modules", ".git", ".venv", "venv", "__pycache__", "$recycle.bin", "system volume information",
-              "appdata", "windows", ".cache"}
+              "appdata", "windows", ".cache"} | ({"library", ".trash"} if host.IS_MAC else set())
 
 
 def _guard(raw: str) -> Path:
@@ -186,9 +187,9 @@ def _open(a: OpenArgs) -> dict:
     if not path.exists():
         raise ToolError(f"{path} does not exist.")
     try:
-        os.startfile(str(path))
+        host.open_path(path)
     except OSError as exc:
-        raise ToolError(f"Windows could not open {path.name}: {exc.strerror or 'no associated app'}.") from exc
+        raise ToolError(f"{host.NAME} could not open {path.name}: {exc.strerror or 'no associated app'}.") from exc
     return {"opened": str(path)}
 
 

@@ -369,14 +369,14 @@ _play_lock = threading.Lock()
 
 def play(wav: bytes) -> None:
     """Play a WAV through the default output and wait for it to finish."""
-    import winsound
+    from . import host
 
     with _play_lock:
-        winsound.PlaySound(wav, winsound.SND_MEMORY | winsound.SND_NODEFAULT)
+        host.play_wav(wav)
 
 
 def say(text: str, settings: dict[str, Any], fallback: Any) -> None:
-    """Speak with the chosen engine without blocking; any failure falls back to the Windows voice."""
+    """Speak with the chosen engine without blocking; any failure falls back to the system voice."""
     voice_cfg = settings.get("voice") or {}
     engine_id = str(voice_cfg.get("tts_engine") or "system")
     if engine_id == "system" or not text.strip():

@@ -20,6 +20,7 @@ from typing import Any
 from pydantic import Field
 
 from .. import secrets
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
@@ -108,15 +109,15 @@ async def _call_twilio(a: VoiceCallArgs) -> dict:
 
 
 async def _call_phone_link(a: VoiceCallArgs) -> dict:
-    import os
     import re
     digits = re.sub(r"[^\d+]", "", a.phone)
     try:
-        await asyncio.to_thread(os.startfile, f"tel:{digits}")
+        await asyncio.to_thread(host.open_uri, f"tel:{digits}")
     except OSError as exc:
         raise ToolError(
             "No calling app available and Twilio is not configured. "
-            "Either pair your phone in Phone Link, or store Twilio credentials in Settings → Keys."
+            f"Either {'turn on iPhone calls in FaceTime' if host.IS_MAC else 'pair your phone in Phone Link'}, "
+            "or store Twilio credentials in Settings → Keys."
         ) from exc
     return {
         "provider": "phone_link",

@@ -9,6 +9,7 @@ from pathlib import Path
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
@@ -94,9 +95,52 @@ class FileSearchArgs(Args):
     max_results: int = Field(20, ge=1, le=50)
 
 
-@tool("file_find", "Search for files by name across the system. Uses Everything if installed, falls back to Windows Search.",
+def _search_spotlight(query: str, max_results: int, search_path: str) -> list[dict]:
+    results = []
+    for line in host.mac.find_files(query, max_results, search_path):
+        p = Path(line)
+        try:
+            stat = p.stat()
+            results.append({"path": str(p), "name": p.name, "size": stat.st_size, "modified": stat.st_mtime})
+        except OSError:
+            results.append({"path": str(p), "name": p.name})
+    return results
+
+
+def _grep(pattern: str, search_path: str, file_filter: str, max_results: int) -> list[dict]:
+    """Content search with the system grep (macOS); one hit per file, like Select-String -List."""
+    includes = [f"--include={ext.strip()}" for ext in file_filter.split(",") if ext.strip()]
+    argv = ["/usr/bin/grep", "-rnIE", "-m", "1", *includes, "-e", pattern, "--", search_path]
+    try:
+        out = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                             timeout=20, check=False).stdout
+    except subprocess.TimeoutExpired as exc:
+        out = exc.stdout.decode("utf-8", "replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+    except OSError as exc:
+        raise ToolError("The system grep could not be started.") from exc
+    results = []
+    for line in out.splitlines():
+        path, _, rest = line.partition(":")
+        number, _, text = rest.partition(":")
+        if number.isdigit():
+            results.append({"path": path, "line_number": int(number), "line": text.strip()[:200]})
+        if len(results) >= max_results:
+            break
+    return results
+
+
+_FIND_HELP = ("Search for files by name across the system (Spotlight)." if host.IS_MAC else
+              "Search for files by name across the system. Uses Everything if installed, falls back to Windows Search.")
+
+
+@tool("file_find", _FIND_HELP,
       FileSearchArgs, Tier.T0, summary=lambda a: f"Search: {a.query[:40]}")
 async def file_search(a: FileSearchArgs) -> dict:
+    if host.IS_MAC:
+        results = await asyncio.to_thread(_search_spotlight, a.query, a.max_results, a.path)
+        return {"results": results, "count": len(results)}
+    if not host.IS_WINDOWS:
+        raise host.unsupported("System-wide file search")
     results = await asyncio.to_thread(_search_everything, a.query, a.max_results)
     if results is None:
         results = await asyncio.to_thread(_search_windows, a.query, a.max_results, a.path)
@@ -115,6 +159,10 @@ class ContentSearchArgs(Args):
       ContentSearchArgs, Tier.T0, summary=lambda a: f"Grep: {a.pattern[:40]}")
 async def content_search(a: ContentSearchArgs) -> dict:
     search_path = a.path or str(Path.home())
+    if not host.IS_WINDOWS:
+        results = await asyncio.to_thread(_grep, a.pattern, os.path.expanduser(search_path), a.file_filter,
+                                          a.max_results)
+        return {"results": results, "count": len(results)}
     escaped = a.pattern.replace("'", "''")
     includes = " ".join(f"-Include '{ext.strip()}'" for ext in a.file_filter.split(","))
     cmd = (

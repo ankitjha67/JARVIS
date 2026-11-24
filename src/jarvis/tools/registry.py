@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from ..errors import ToolError
 from ..policy import Tier
-
-
-class ToolError(Exception):
-    """A tool failed or refused. The message is safe to show the user and the model."""
 
 
 class Args(BaseModel):
@@ -69,8 +67,12 @@ REGISTRY: dict[str, Tool] = {}
 def tool(
     name: str, description: str, args: type[Args], tier: Tier, *, summary: Callable[[Any], str],
     taints: bool = False, classify: Classifier | None = None, sensitive: bool = False,
+    platforms: tuple[str, ...] | None = None,
 ) -> Callable[[Callable[[Any], Awaitable[Any]]], Callable[[Any], Awaitable[Any]]]:
+    """`platforms` limits a tool to those `sys.platform` values; elsewhere it is not offered to the model."""
     def register(fn: Callable[[Any], Awaitable[Any]]) -> Callable[[Any], Awaitable[Any]]:
+        if platforms is not None and sys.platform not in platforms:
+            return fn
         if name in REGISTRY:
             raise RuntimeError(f"duplicate tool: {name}")
         REGISTRY[name] = Tool(name, description, args, tier, fn, summary, taints, classify, sensitive)

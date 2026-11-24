@@ -20,7 +20,9 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Res
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-from . import __version__, ack, mcp_oauth, protocol, secrets, selfheal, speech, telemetry, voice_training, workflows
+from . import (
+    __version__, ack, host, mcp_oauth, protocol, secrets, selfheal, speech, telemetry, voice_training, workflows,
+)
 from . import wake as wake_mod
 from .agents import AgentManager, PlanManager
 from .background_tasks import BackgroundTaskEngine, TaskRunner
@@ -61,7 +63,7 @@ from .wake import WakeListener
 
 log = logging.getLogger(__name__)
 
-HOTKEYS = {"summon": "Ctrl+Alt+J", "kill": "Ctrl+Alt+Backspace"}
+HOTKEYS = host.HOTKEYS
 _SETTINGS_KEYS = {"onboarding_complete", "assistant_name", "privacy_mode", "routing", "models", "voice",
                   "max_steps", "autonomy", "email", "mcp_servers", "custom_providers", "integrations",
                   "theme", "persona", "response_style"}
@@ -816,7 +818,7 @@ class Hub:
                     return
                 except Exception as exc:  # noqa: BLE001 - keyring backends raise assorted errors
                     log.warning("keyring write failed: %s", type(exc).__name__)
-                    await ws.send_text(json.dumps(msg("error", message="Windows Credential Manager refused the key.",
+                    await ws.send_text(json.dumps(msg("error", message=f"{host.KEYSTORE_NAME[0].upper()}{host.KEYSTORE_NAME[1:]} refused the key.",
                                                       code="secret")))
                     return
                 await self.broadcast(msg("notice", level="info",

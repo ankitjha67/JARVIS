@@ -67,8 +67,8 @@ async def timer_set(a: TimerSetArgs) -> dict:
             hub = context._hub  # type: ignore[attr-defined]
             await hub.broadcast({"type": "notice", "level": "info",
                                  "message": f"Timer '{a.label}' is done! ({a.duration})"})
-            import winsound
-            await asyncio.to_thread(winsound.Beep, 1000, 500)
+            from .. import host
+            await asyncio.to_thread(host.beep, 1000, 500)
         except Exception:
             log.debug("timer notification failed", exc_info=True)
 

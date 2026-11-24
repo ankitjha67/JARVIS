@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import sys
 import pytest
 
 from jarvis import tools
@@ -253,6 +254,8 @@ def test_wake_model_scores_the_word_and_not_near_misses():
     import tempfile
     from pathlib import Path
 
+    if sys.platform != "win32":
+        pytest.skip("needs Windows speech synthesis")
     out = Path(tempfile.mkdtemp())
     script = ("Add-Type -AssemblyName System.Speech; $s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
               "$f = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo(16000, 'Sixteen', 'Mono'); "
@@ -324,6 +327,8 @@ def _synth(tmp_path, text):
 
     import numpy as np
 
+    if sys.platform != "win32":
+        pytest.skip("needs Windows speech synthesis")
     wav = tmp_path / "say.wav"
     script = ("Add-Type -AssemblyName System.Speech; $s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
               "$f = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo(16000, 'Sixteen', 'Mono'); "

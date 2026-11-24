@@ -8,10 +8,11 @@ import subprocess
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
-_NO_WINDOW = subprocess.CREATE_NO_WINDOW
+_NO_WINDOW = host.NO_WINDOW
 
 
 async def _git(args: list[str], cwd: str) -> str:

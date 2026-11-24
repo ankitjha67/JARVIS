@@ -11,29 +11,37 @@ import time
 import webbrowser
 
 import psutil
-import win32clipboard
-import win32con
-import win32gui
-import win32process
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier, normalise_web_url
 from .registry import Args, ToolError, tool
 from .system import NoArgs
 
+if host.IS_WINDOWS:
+    import win32con
+    import win32gui
+    import win32process
+
 # ---------------------------------------------------------------------------------------------
-# Installed apps (Start menu, including Store apps)
+# Installed apps (Windows: Start menu, including Store apps; macOS: the Applications folders)
 # ---------------------------------------------------------------------------------------------
 
 _apps_cache: tuple[float, list[dict[str, str]]] | None = None
 _APPS_TTL = 600.0
-_NO_WINDOW = subprocess.CREATE_NO_WINDOW
+_NO_WINDOW = host.NO_WINDOW
 
 
 def _load_apps() -> list[dict[str, str]]:
     global _apps_cache
     if _apps_cache and time.monotonic() - _apps_cache[0] < _APPS_TTL:
         return _apps_cache[1]
+    if host.IS_MAC:
+        apps = host.mac.list_apps()
+        _apps_cache = (time.monotonic(), apps)
+        return apps
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Listing installed apps")
     try:
         out = subprocess.run(
             ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
@@ -87,6 +95,9 @@ def _open_app(a: AppQuery) -> dict:
         raise ToolError(f"No installed app matches “{a.name}”.")
     best = matches[0]
     # app_id comes from our own index, never from the model; passed as a single argv item (SEC-7).
+    if host.IS_MAC:
+        host.mac.launch_app(best["app_id"])
+        return {"opened": best["name"], "other_matches": [m["name"] for m in matches[1:]]}
     subprocess.Popen(["explorer.exe", f"shell:AppsFolder\\{best['app_id']}"], creationflags=_NO_WINDOW)
     return {"opened": best["name"], "other_matches": [m["name"] for m in matches[1:]]}
 
@@ -101,7 +112,16 @@ async def apps_open(a: AppQuery) -> dict:
 # Windows
 # ---------------------------------------------------------------------------------------------
 
+_window_note = ""
+
+
 def _windows() -> list[dict]:
+    global _window_note
+    if host.IS_MAC:
+        rows, _window_note = host.mac.list_windows()
+        return rows
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Window control")
     rows: list[dict] = []
     fg = win32gui.GetForegroundWindow()
 
@@ -128,8 +148,13 @@ def _windows() -> list[dict]:
 
 @tool("windows_list", "List open top-level windows with their ids, titles and owning processes.", NoArgs, Tier.T0,
       summary=lambda a: "List open windows")
-async def windows_list(_: NoArgs) -> list[dict]:
-    return await asyncio.to_thread(_windows)
+async def windows_list(_: NoArgs) -> list[dict] | dict:
+    rows = await asyncio.to_thread(_windows)
+    if host.IS_MAC:
+        rows = [{k: w[k] for k in ("id", "title", "process", "minimized", "focused")} for w in rows]
+        if _window_note:
+            return {"windows": rows, "note": _window_note}
+    return rows
 
 
 class WindowArgs(Args):
@@ -157,6 +182,9 @@ def _window_label(a: WindowArgs) -> str:
 
 def _focus(a: WindowArgs) -> dict:
     w = _resolve_window(a)
+    if host.IS_MAC:
+        host.mac.window_action(w, "focus")
+        return {"focused": w["title"]}
     hwnd = w["id"]
     if win32gui.IsIconic(hwnd):
         win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
@@ -182,6 +210,9 @@ class WindowStateArgs(WindowArgs):
 
 def _set_state(a: WindowStateArgs) -> dict:
     w = _resolve_window(a)
+    if host.IS_MAC:
+        host.mac.window_action(w, a.state)
+        return {"window": w["title"], "state": a.state}
     cmd = {"minimize": win32con.SW_MINIMIZE, "maximize": win32con.SW_MAXIMIZE, "restore": win32con.SW_RESTORE}[a.state]
     win32gui.ShowWindow(w["id"], cmd)
     return {"window": w["title"], "state": a.state}
@@ -195,6 +226,9 @@ async def window_set_state(a: WindowStateArgs) -> dict:
 
 def _close(a: WindowArgs) -> dict:
     w = _resolve_window(a)
+    if host.IS_MAC:
+        host.mac.window_action(w, "close")
+        return {"close_requested": w["title"]}
     win32gui.PostMessage(w["id"], win32con.WM_CLOSE, 0, 0)
     return {"close_requested": w["title"]}
 
@@ -241,24 +275,10 @@ async def web_open(a: UrlArgs) -> dict:
 _CLIP_MAX = 20_000
 
 
-def _clip_open() -> None:
-    for _ in range(5):
-        try:
-            win32clipboard.OpenClipboard()
-            return
-        except win32clipboard.error:
-            time.sleep(0.05)
-    raise ToolError("The clipboard is busy. Try again.")
-
-
 def _clip_read() -> dict:
-    _clip_open()
-    try:
-        if not win32clipboard.IsClipboardFormatAvailable(win32con.CF_UNICODETEXT):
-            return {"text": "", "note": "The clipboard does not contain text."}
-        text = str(win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT))
-    finally:
-        win32clipboard.CloseClipboard()
+    text = host.clipboard_get()
+    if text is None:
+        return {"text": "", "note": "The clipboard does not contain text."}
     return {"text": text[:_CLIP_MAX], "truncated": len(text) > _CLIP_MAX}
 
 
@@ -273,12 +293,7 @@ class ClipWriteArgs(Args):
 
 
 def _clip_write(a: ClipWriteArgs) -> dict:
-    _clip_open()
-    try:
-        win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardData(win32con.CF_UNICODETEXT, a.text)
-    finally:
-        win32clipboard.CloseClipboard()
+    host.clipboard_set(a.text)
     return {"copied_chars": len(a.text)}
 
 
@@ -292,9 +307,8 @@ async def clipboard_write(a: ClipWriteArgs) -> dict:
 # Power
 # ---------------------------------------------------------------------------------------------
 
-@tool("power_lock", "Lock the computer (shows the Windows lock screen).", NoArgs, Tier.T1,
+@tool("power_lock", f"Lock the computer (shows the {host.NAME} lock screen).", NoArgs, Tier.T1,
       summary=lambda a: "Lock the computer")
 async def power_lock(_: NoArgs) -> dict:
-    if not ctypes.windll.user32.LockWorkStation():
-        raise ToolError("Windows refused to lock the workstation.")
+    await asyncio.to_thread(host.lock_screen)
     return {"locked": True}

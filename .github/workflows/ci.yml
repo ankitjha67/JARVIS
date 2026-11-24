@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [master, macos-support]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (Apple Silicon)
+            os: macos-15
+          - name: Windows
+            os: windows-latest
+    env:
+      JARVIS_DATA_DIR: ${{ github.workspace }}/ci-data
+      JARVIS_DOCTOR_WRITE: "1"
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install Python dependencies
+        run: uv sync --locked
+
+      - name: Build the HUD
+        run: |
+          npm --prefix ui ci
+          npm --prefix ui run build
+
+      - name: HUD tests
+        run: npm --prefix ui test
+
+      - name: Python tests
+        run: uv run pytest -q
+
+      - name: Doctor (what works on this runner)
+        run: uv run jarvis --doctor
+
+      - name: Start the core and check it answers
+        shell: bash
+        run: |
+          uv run jarvis --no-window > core.log 2>&1 &
+          pid=$!
+          ok=""
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:47821/api/health; then ok=1; break; fi
+            sleep 1
+          done
+          kill $pid 2>/dev/null || true
+          if [ -z "$ok" ]; then echo "core did not start"; cat core.log; exit 1; fi

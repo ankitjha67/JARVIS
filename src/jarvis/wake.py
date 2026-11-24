@@ -18,6 +18,7 @@ import logging
 import os
 import queue
 import re
+import sys
 import threading
 import time
 from collections import deque
@@ -770,9 +771,11 @@ class WakeListener:
                 log.warning("wake word stopped: %s", exc)
                 text = str(exc) or type(exc).__name__
                 if isinstance(exc, MemoryError):
-                    text = "Windows is out of memory, so the wake word could not run. Close some apps and turn it on again."
+                    text = "The computer is out of memory, so the wake word could not run. Close some apps and turn it on again."
                 if "Invalid" in text or "PortAudio" in type(exc).__name__ or "device" in text.lower():
-                    text = "The microphone could not be opened. Check Windows microphone privacy settings."
+                    text = ("The microphone could not be opened. Allow the app you start Jarvis from under "
+                            "System Settings → Privacy & Security → Microphone." if sys.platform == "darwin" else
+                            "The microphone could not be opened. Check Windows microphone privacy settings.")
                 self._set("error", text[:200])
             return
         if not stop.is_set():

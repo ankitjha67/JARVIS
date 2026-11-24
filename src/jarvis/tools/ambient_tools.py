@@ -9,8 +9,9 @@ from typing import Any
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
-from .registry import Args, ToolError, tool
+from .registry import Args, tool
 
 log = logging.getLogger(__name__)
 
@@ -24,8 +25,14 @@ _MAX_HISTORY = 200
 
 def _enum_windows() -> list[dict[str, Any]]:
     """Enumerate visible windows with title, process, and position."""
-    import os
-
+    if host.IS_MAC:
+        # The window server's own list: cheap enough to poll and needs no Accessibility permission.
+        return [{"hwnd": n, "title": w["title"] or w["process"], "process": w["process"], "pid": w["pid"],
+                 "rect": {"left": w["rect"][0], "top": w["rect"][1], "right": w["rect"][0] + w["rect"][2],
+                          "bottom": w["rect"][1] + w["rect"][3]}}
+                for n, w in enumerate(host.mac.visible_windows(), start=1)]
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Window monitoring")
     import psutil
     import win32gui
     import win32process
@@ -67,21 +74,8 @@ def _enum_windows() -> list[dict[str, Any]]:
 
 def _get_foreground() -> dict[str, Any] | None:
     """Get the currently focused window."""
-    import win32gui
-    import win32process
-    import psutil
-
-    hwnd = win32gui.GetForegroundWindow()
-    if not hwnd:
-        return None
-    title = win32gui.GetWindowText(hwnd)
-    try:
-        _, pid = win32process.GetWindowThreadProcessId(hwnd)
-        proc_name = psutil.Process(pid).name()
-    except Exception:
-        pid = 0
-        proc_name = ""
-    return {"title": title, "process": proc_name, "pid": pid, "time": time.time()}
+    fg = host.foreground_app()
+    return {**fg, "time": time.time()} if fg else None
 
 
 # ---------------------------------------------------------------------------

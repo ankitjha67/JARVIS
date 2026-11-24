@@ -220,6 +220,7 @@ function ThemeStep({ onNext }: { onNext: () => void }) {
 function ReadyStep({ onFinish }: { onFinish: () => void }) {
   const name = useHud((s) => s.settings?.assistant_name) || 'J.A.R.V.I.S';
   const shortName = name.replace(/\./g, '');
+  const hotkeys = useHud((s) => s.hotkeys);
   const [launched, setLaunched] = useState(false);
   useEffect(() => { const t = setTimeout(() => setLaunched(true), 300); return () => clearTimeout(t); }, []);
   return (
@@ -229,9 +230,9 @@ function ReadyStep({ onFinish }: { onFinish: () => void }) {
       </div>
       <h2 className="ob-step-title">You're all set</h2>
       <p className="ob-step-desc">
-        Press <kbd>Ctrl+Alt+J</kbd> anywhere to summon {shortName}.<br />
+        Press <kbd>{hotkeys.summon}</kbd> anywhere to summon {shortName}.<br />
         Say <strong>"{shortName}"</strong> to wake by voice.<br />
-        Press <kbd>Ctrl+Alt+Backspace</kbd> to kill-switch.
+        Press <kbd>{hotkeys.kill}</kbd> to kill-switch.
       </p>
       <button className="ob-cta ob-cta--launch" onClick={onFinish}>
         Launch {shortName} <ChevronRight size={18} />

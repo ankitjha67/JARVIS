@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import asyncio
-import subprocess
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
@@ -15,11 +15,10 @@ class LockScreenArgs(Args):
     pass
 
 
-@tool("security_lock", "Lock the Windows screen immediately.",
+@tool("security_lock", "Lock the screen immediately.",
       LockScreenArgs, Tier.T1, sensitive=True, summary=lambda a: "Lock screen")
 async def security_lock(a: LockScreenArgs) -> dict:
-    await asyncio.to_thread(subprocess.run, ["rundll32.exe", "user32.dll,LockWorkStation"],
-                            capture_output=True, timeout=5)
+    await asyncio.to_thread(host.lock_screen)
     return {"locked": True}
 
 
@@ -89,7 +88,7 @@ class KillProcessArgs(Args):
 async def security_kill(a: KillProcessArgs) -> dict:
     import psutil
 
-    PROTECTED_PIDS = {0, 4}
+    PROTECTED_PIDS = {0, 4} if host.IS_WINDOWS else {0, 1}
 
     if a.pid in PROTECTED_PIDS:
         raise ToolError(f"Cannot kill system process PID {a.pid}.")
@@ -97,7 +96,8 @@ async def security_kill(a: KillProcessArgs) -> dict:
     def _kill() -> dict:
         proc = psutil.Process(a.pid)
         name = proc.name()
-        protected_names = {"system", "smss.exe", "csrss.exe", "wininit.exe", "services.exe", "lsass.exe"}
+        protected_names = {"system", "smss.exe", "csrss.exe", "wininit.exe", "services.exe", "lsass.exe",
+                           "launchd", "kernel_task", "windowserver", "loginwindow", "securityd", "opendirectoryd"}
         if name.lower() in protected_names:
             raise ToolError(f"Cannot kill protected system process: {name}")
         if a.force:

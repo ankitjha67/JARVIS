@@ -1,8 +1,11 @@
-"""Desktop control through Windows UI Automation (FR-T12).
+"""Desktop control through the accessibility tree (FR-T12): Windows UI Automation, macOS Accessibility.
 
 The model sees the foreground window as a list of controls with short refs (`ui_snapshot`) and acts on a
 control by ref (`ui_click`, `ui_type`). This works with any text model — no screenshots or vision needed —
 and is more reliable than clicking pixels. All UIA calls run on one dedicated thread (COM apartment rule).
+
+On macOS the snapshot comes from System Events and a control is clicked at the centre of its frame, so the
+pointer moves; the user must allow Accessibility for the app Jarvis was started from.
 """
 
 from __future__ import annotations
@@ -16,6 +19,7 @@ from typing import Any
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 from .system import NoArgs
@@ -26,6 +30,8 @@ _holder: Any = None
 
 def _init_thread() -> None:
     global _uia, _holder
+    if not host.IS_WINDOWS:
+        return
     import uiautomation
 
     _uia = uiautomation
@@ -58,7 +64,24 @@ def _is_password(ctl: Any) -> bool:
         return False
 
 
+def _snapshot_macos() -> dict[str, Any]:
+    data = host.mac.ui_snapshot(_MAX_ELEMENTS)
+    _refs.clear()
+    elements = []
+    for n, item in enumerate(data.get("elements") or [], start=1):
+        ref = f"e{n}"
+        _refs[ref] = {"x": item.pop("x"), "y": item.pop("y"), "name": item.get("name") or item.get("type", "")}
+        elements.append({"ref": ref, **item})
+    return {"window": str(data.get("window") or "")[:160], "class": str(data.get("app") or ""),
+            "elements": elements, "visible_text": data.get("texts") or [],
+            "truncated": bool(data.get("truncated"))}
+
+
 def _snapshot() -> dict[str, Any]:
+    if host.IS_MAC:
+        return _snapshot_macos()
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Reading window controls")
     window = _uia.GetForegroundControl()
     if window is None:
         raise ToolError("No window is in the foreground.")
@@ -122,6 +145,8 @@ def _resolve(ref: str) -> Any:
     ctl = _refs.get(ref)
     if ctl is None:
         raise ToolError(f"Unknown ref {ref}. Call ui_snapshot first and use a ref from its result.")
+    if host.IS_MAC:
+        return ctl  # a screen point; the click itself reports failure
     try:
         if not ctl.Exists(0.5):
             raise ToolError("That control no longer exists. Take a new ui_snapshot.")
@@ -140,6 +165,9 @@ class ClickArgs(Args):
 
 def _click(a: ClickArgs) -> dict:
     ctl = _resolve(a.ref)
+    if host.IS_MAC:
+        host.mac.click_at(ctl["x"], ctl["y"], right=a.right, double=a.double)
+        return {"clicked": str(ctl["name"])[:80], "method": "mouse"}
     name = (ctl.Name or ctl.ControlTypeName)[:80]
     try:
         if not a.double and not a.right:
@@ -214,7 +242,22 @@ class TypeArgs(Args):
     enter: bool = Field(False, description="Press Enter afterwards")
 
 
+def _type_macos(a: TypeArgs) -> dict:
+    into = ""
+    if a.ref:
+        ctl = _resolve(a.ref)
+        host.mac.click_at(ctl["x"], ctl["y"])  # focus the field; the password check runs on what got focus
+        time.sleep(0.2)
+        into = str(ctl["name"])[:80]
+    app = host.mac.type_text(a.text, clear=a.clear, enter=a.enter)
+    return {"typed_chars": len(a.text), "into": into or app or "focus"}
+
+
 def _type(a: TypeArgs) -> dict:
+    if host.IS_MAC:
+        return _type_macos(a)
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Typing into other apps")
     target = _resolve(a.ref) if a.ref else _uia.GetFocusedControl()
     if target is not None and _is_password(target):
         # SEC-11: Jarvis never enters credentials.
@@ -260,7 +303,9 @@ _KEYS = {
 
 
 class HotkeyArgs(Args):
-    keys: str = Field(..., min_length=1, max_length=40, description="Combination such as 'ctrl+s', 'alt+f4', 'win+d', 'enter'")
+    keys: str = Field(..., min_length=1, max_length=40, description=(
+        "Combination such as 'cmd+s', 'cmd+shift+4', 'ctrl+option+j', 'enter'" if host.IS_MAC
+        else "Combination such as 'ctrl+s', 'alt+f4', 'win+d', 'enter'"))
 
 
 def _parse_keys(keys: str) -> list[int]:
@@ -276,6 +321,11 @@ def _parse_keys(keys: str) -> list[int]:
 
 
 def _classify_hotkey(a: HotkeyArgs) -> tuple[Tier, str]:
+    if host.IS_MAC:
+        mods, _, value = host.mac.parse_hotkey(a.keys)
+        if set(mods) == {"control", "command"} and value == "q":
+            return Tier.T1, ""  # lock: harmless
+        return Tier.T2, "Sends a keyboard shortcut to the active window."
     codes = _parse_keys(a.keys)
     if 0x5B in codes and ord("L") in codes:
         return Tier.T1, ""  # lock: harmless
@@ -285,6 +335,11 @@ def _classify_hotkey(a: HotkeyArgs) -> tuple[Tier, str]:
 
 
 def _hotkey(a: HotkeyArgs) -> dict:
+    if host.IS_MAC:
+        host.mac.send_hotkey(a.keys)
+        return {"sent": a.keys}
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Sending keyboard shortcuts")
     codes = _parse_keys(a.keys)
     for vk in codes:
         _send(vk=vk)

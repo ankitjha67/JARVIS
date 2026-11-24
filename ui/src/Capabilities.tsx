@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Check, KeyRound, Loader2, Plus, ShieldAlert, Trash2, TriangleAlert } from 'lucide-react';
 import type { McpServerConfig, Settings as SettingsT } from './protocol';
 import { send } from './socket';
-import { parsePairs, splitCommand } from './text';
+import { KEY_STORE, parsePairs, splitCommand } from './text';
 import { useHud } from './store';
 
 const patch = (p: Partial<SettingsT> | Record<string, unknown>) => send({ type: 'settings.set', patch: p });
@@ -100,7 +100,7 @@ export function EmailSection({ settings }: { settings: SettingsT }) {
         <button className="btn btn--primary" type="button" disabled={!dirty} onClick={save}>Save account</button>
       </div>
       <form className="field" onSubmit={(e) => { e.preventDefault(); if (password.trim() && send({ type: 'secret.set', provider: 'email', value: password.trim() })) setPassword(''); }}>
-        <label htmlFor="em-pass">App password {status?.has_password && <span className="ok">· stored in Windows Credential Manager</span>}</label>
+        <label htmlFor="em-pass">App password {status?.has_password && <span className="ok">· stored in {KEY_STORE}</span>}</label>
         <div className="field__row">
           <input id="em-pass" type="password" autoComplete="off" spellCheck={false} value={password}
             placeholder={status?.has_password ? 'Enter a new app password to replace the stored one' : 'Paste the app password'} onChange={(e) => setPassword(e.target.value)} />

@@ -4,20 +4,19 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
-import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
 from pydantic import Field
 
 from ..config import DATA_DIR
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
 _CLIPS_DIR = DATA_DIR / "clips"
 _INDEX_FILE = _CLIPS_DIR / "index.json"
-_NO_WINDOW = subprocess.CREATE_NO_WINDOW
+_NO_WINDOW = host.NO_WINDOW
 
 
 def _load_index() -> list[dict]:
@@ -51,13 +50,18 @@ def _capture(region: str) -> Path:
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     path = _CLIPS_DIR / f"clip_{ts}.png"
 
-    if region == "active":
-        import win32gui
-        hwnd = win32gui.GetForegroundWindow()
-        rect = win32gui.GetWindowRect(hwnd)
-        img = ImageGrab.grab(bbox=rect)
-    else:
-        img = ImageGrab.grab()
+    try:
+        if region == "active" and host.IS_WINDOWS:
+            import win32gui
+            hwnd = win32gui.GetForegroundWindow()
+            img = ImageGrab.grab(bbox=win32gui.GetWindowRect(hwnd))
+        elif region == "active" and host.IS_MAC:
+            rect = host.mac.window_rect()
+            img = ImageGrab.grab(bbox=(rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3])) if rect else ImageGrab.grab()
+        else:
+            img = ImageGrab.grab()
+    except OSError as exc:  # macOS: screen capture not permitted
+        raise ToolError(host.mac.SCREEN_HELP if host.IS_MAC else f"The screen could not be captured: {exc}") from exc
 
     img.save(str(path), "PNG")
     return path

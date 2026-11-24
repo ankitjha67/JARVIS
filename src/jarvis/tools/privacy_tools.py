@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
@@ -139,6 +140,10 @@ class StartupArgs(Args):
 
 
 def _startup_programs() -> list[dict]:
+    if host.IS_MAC:
+        return host.mac.startup_items()
+    if not host.IS_WINDOWS:
+        raise host.unsupported("The startup audit")
     import winreg
 
     locations = [
@@ -167,7 +172,9 @@ def _startup_programs() -> list[dict]:
     return items
 
 
-@tool("privacy_startup_audit", "List programs that run at Windows startup (registry Run keys).",
+@tool("privacy_startup_audit",
+      ("List programs that start with macOS (login items, launch agents and daemons)." if host.IS_MAC
+       else "List programs that run at Windows startup (registry Run keys)."),
       StartupArgs, Tier.T0, summary=lambda a: "Startup programs audit")
 async def privacy_startup_audit(a: StartupArgs) -> dict:
     programs = await asyncio.to_thread(_startup_programs)

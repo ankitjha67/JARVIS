@@ -11,6 +11,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable
 
+from . import host
+
 log = logging.getLogger(__name__)
 
 _SCHEMA = """
@@ -73,11 +75,7 @@ class TimerManager:
         def _fire():
             with self._lock:
                 self._timers.pop(tid, None)
-            try:
-                import winsound
-                winsound.Beep(1000, 500)
-            except Exception:
-                pass
+            host.beep(1000, 500)
             if self._on_fire:
                 self._on_fire("timer", f"Timer done: {label or tid}")
 
@@ -131,11 +129,7 @@ class TimerManager:
                 ).fetchall()
                 for row in rows:
                     self._db.execute("UPDATE reminders SET fired = 1 WHERE id = ?", (row["id"],))
-                    try:
-                        import winsound
-                        winsound.Beep(800, 300)
-                    except Exception:
-                        pass
+                    host.beep(800, 300)
                     if self._on_fire:
                         self._on_fire("reminder", row["message"])
             except Exception:

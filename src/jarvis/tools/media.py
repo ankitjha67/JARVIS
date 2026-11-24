@@ -8,6 +8,7 @@ from typing import Any
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
@@ -40,6 +41,10 @@ class VolumeArgs(Args):
 def _volume(a: VolumeArgs) -> dict:
     if a.percent is None and a.change is None and a.mute is None:
         raise ToolError("Give percent, change or mute.")
+    if host.IS_MAC:
+        return host.mac.volume(a.percent, a.change, a.mute)
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Volume control")
     vol = _endpoint()
     current = round(vol.GetMasterVolumeLevelScalar() * 100)
     target = a.percent if a.percent is not None else (current + a.change if a.change is not None else None)
@@ -72,6 +77,11 @@ class MediaArgs(Args):
 @tool("media_control", "Send a media key: play_pause, next, previous or stop.", MediaArgs, Tier.T1,
       summary=lambda a: f"Media: {a.action.replace('_', ' ')}")
 async def media_control(a: MediaArgs) -> dict:
+    if host.IS_MAC:
+        await asyncio.to_thread(host.mac.media_key, a.action)
+        return {"sent": a.action}
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Media keys")
     vk = _VK[a.action]
     ctypes.windll.user32.keybd_event(vk, 0, 0, 0)
     ctypes.windll.user32.keybd_event(vk, 0, 2, 0)

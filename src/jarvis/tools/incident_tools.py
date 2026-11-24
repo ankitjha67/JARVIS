@@ -7,10 +7,11 @@ import subprocess
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
-_NO_WINDOW = subprocess.CREATE_NO_WINDOW
+_NO_WINDOW = host.NO_WINDOW
 
 
 # ---------------------------------------------------------------------------
@@ -18,7 +19,23 @@ _NO_WINDOW = subprocess.CREATE_NO_WINDOW
 # ---------------------------------------------------------------------------
 
 class CaptureArgs(Args):
-    event_log_count: int = Field(10, ge=1, le=50, description="Recent Windows event log errors to include")
+    event_log_count: int = Field(10, ge=1, le=50, description="Recent system log errors to include")
+
+
+def _recent_errors(event_count: int) -> list[str]:
+    if host.IS_MAC:
+        return host.mac.recent_errors(event_count)
+    try:
+        result = subprocess.run(
+            ["wevtutil", "qe", "System", "/c:" + str(event_count),
+             "/rd:true", "/f:text", "/q:*[System[Level<=2]]"],
+            capture_output=True, text=True, timeout=10, creationflags=_NO_WINDOW,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return ["(the system event log is unavailable)"]
+    if result.returncode != 0:
+        return []
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()][:200]
 
 
 def _capture(event_count: int) -> dict:
@@ -26,7 +43,7 @@ def _capture(event_count: int) -> dict:
 
     cpu_percent = psutil.cpu_percent(interval=1)
     mem = psutil.virtual_memory()
-    disk = psutil.disk_usage("C:\\")
+    disk = psutil.disk_usage(host.SYSTEM_DISK)
 
     top_procs = []
     for p in sorted(psutil.process_iter(["pid", "name", "cpu_percent", "memory_percent"]),
@@ -37,17 +54,7 @@ def _capture(event_count: int) -> dict:
             "memory_percent": round(p.info.get("memory_percent") or 0, 1),
         })
 
-    events: list[str] = []
-    try:
-        result = subprocess.run(
-            ["wevtutil", "qe", "System", "/c:" + str(event_count),
-             "/rd:true", "/f:text", "/q:*[System[Level<=2]]"],
-            capture_output=True, text=True, timeout=10, creationflags=_NO_WINDOW,
-        )
-        if result.returncode == 0:
-            events = [l.strip() for l in result.stdout.splitlines() if l.strip()][:200]
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        events = ["(wevtutil unavailable)"]
+    events = _recent_errors(event_count)
 
     return {
         "cpu_percent": cpu_percent,
@@ -163,10 +170,15 @@ async def incident_network(a: NetworkArgs) -> dict:
 # ---------------------------------------------------------------------------
 
 class ServiceStatusArgs(Args):
-    name: str = Field(..., min_length=1, max_length=200, description="Windows service name")
+    name: str = Field(..., min_length=1, max_length=200, description=(
+        "launchd service label, e.g. com.apple.Finder" if host.IS_MAC else "Windows service name"))
 
 
 async def _service_status(name: str) -> dict:
+    if host.IS_MAC:
+        return await asyncio.to_thread(host.mac.service_status, name)
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Service status")
     proc = await asyncio.create_subprocess_exec(
         "sc", "query", name,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
@@ -186,7 +198,8 @@ async def _service_status(name: str) -> dict:
     return {"service": name, "state": state, "raw": text.strip()[:1000]}
 
 
-@tool("incident_service_status", "Check the status of a Windows service.",
+@tool("incident_service_status",
+      "Check the status of a launchd service." if host.IS_MAC else "Check the status of a Windows service.",
       ServiceStatusArgs, Tier.T0, summary=lambda a: f"Service: {a.name}")
 async def incident_service_status(a: ServiceStatusArgs) -> dict:
     return await _service_status(a.name)

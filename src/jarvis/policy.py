@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
@@ -68,13 +69,19 @@ _SENSITIVE_DIR_PARTS = {
     "user data",  # Chromium profiles (cookies, saved logins)
     "profiles",  # Firefox profiles
     "protect", "vault",  # DPAPI master keys / Windows Vault
+    "com.apple.tcc", "cookies",  # macOS privacy database and ~/Library/Cookies
 }
 _SENSITIVE_NAME_RE = re.compile(
     r"(?ix) ^(?: \.env(\..*)? | .*\.pem | .*\.key | .*\.pfx | .*\.p12 | .*\.kdbx | .*\.ppk "
     r"| id_(rsa|dsa|ecdsa|ed25519)(\.pub)? | \.netrc | \.npmrc | \.pypirc | \.git-credentials "
     r"| login\ data.* | cookies(\..*)? | wallet\.dat | ntuser\.dat.* | sam | security | system )$"
 )
-_SYSTEM_ROOTS = [r"c:\windows", r"c:\program files", r"c:\program files (x86)", r"c:\programdata"]
+_WINDOWS_ROOTS = [r"c:\windows", r"c:\program files", r"c:\program files (x86)", r"c:\programdata"]
+# /tmp, /var/folders and /usr/local stay writable; resolved paths show /etc and /var under /private.
+_MACOS_ROOTS = ["/system", "/library", "/applications", "/bin", "/sbin", "/usr/bin", "/usr/sbin", "/usr/lib",
+                "/usr/libexec", "/usr/share", "/etc", "/private/etc", "/private/var/db", "/private/var/root",
+                "/cores", "/opt/homebrew", "/usr/local/cellar"]
+_SYSTEM_ROOTS = _WINDOWS_ROOTS if sys.platform == "win32" else _MACOS_ROOTS
 
 
 def canonical(path: str) -> Path:
@@ -134,23 +141,72 @@ _SHELL_T3: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
-def shell_refusal(command: str) -> str | None:
-    for pat, why in _SHELL_REFUSE:
+# zsh / POSIX commands (macOS). Checked in addition to the lists above, which already cover rm, shutdown,
+# sudo, git and output redirection.
+_POSIX_REFUSE: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"(?i)(^|[\s;&|(`])(su|doas|pkexec)(\s|$)|with\s+administrator\s+privileges"),
+     "Jarvis never elevates privileges. Run elevated commands yourself."),
+    (re.compile(r"(?i)\bbase64\b[^|;&]*(-d\b|-D\b|--decode\b)[^|;&]*\|\s*(sh|bash|zsh|python3?|perl|ruby|osascript)\b"),
+     "Encoded commands are refused because they cannot be reviewed."),
+    (re.compile(r"(?i)\bsecurity\s+(find-(generic|internet)-password|find-certificate|find-identity|dump-keychain|"
+                r"export|unlock-keychain|show-keychain-info)\b"),
+     "Jarvis never reads the Keychain or other credential stores."),
+]
+
+_POSIX_T3: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"(?i)\b(unlink|shred|srm|trash)\b|\bfind\b.*\s-delete\b"), "deletes files"),
+    (re.compile(r"(?i)\b(diskutil|newfs\w*|mkfs\w*|fdisk|gpt|asr|dd)\b|\bhdiutil\s+(erase|convert|create)\b"),
+     "modifies disks or volumes"),
+    (re.compile(r"(?i)\b(reboot|halt|poweroff)\b|\bpmset\s+(sleepnow|displaysleepnow)\b|\bkillall\s+loginwindow\b"),
+     "shuts down, restarts or sleeps the computer"),
+    (re.compile(r"(?i)\blaunchctl\s+(load|unload|bootstrap|bootout|enable|disable|submit|remove|kickstart)\b|"
+                r"\bcrontab\b|launchagents|launchdaemons|\blogin\s+item"),
+     "creates persistence (launch agent, daemon, cron job or login item)"),
+    (re.compile(r"(?i)\bdefaults\s+(write|delete|import)\b|\b(csrutil|spctl|nvram|tccutil|systemsetup|pfctl|"
+                r"socketfilterfw|fdesetup|bless|kextload|kextunload|kmutil)\b|\bscutil\s+--set\b|"
+                r"\bsecurity\s+(add|delete|import|set|authorizationdb)\S*|\bprofiles\s+(install|remove)\b|"
+                r"\bxattr\s+-\w*[dc]\b|\bchflags\b|\bnetworksetup\s+-set\w+"),
+     "changes security or system configuration"),
+    (re.compile(r"(?i)\b(dscl|sysadminctl|dseditgroup|passwd|chpasswd|useradd|usermod|userdel)\b"),
+     "changes user accounts"),
+    (re.compile(r"(?i)\b(brew|port|gem|cargo|mas|apt|apt-get|dnf|yum|pacman|pipx)\b.*\b(install|uninstall|remove|"
+                r"reinstall|upgrade|add)\b|\bsoftwareupdate\s+(-i|--install)\b|\binstaller\s+-pkg\b"),
+     "installs or removes software"),
+    (re.compile(r"(?i)\b(curl|wget|fetch)\b.*(\||;|&&).*\b(sh|zsh|perl|ruby|node|osascript)\b|\beval\b|"
+                r"\bsource\s+<\(|(^|[\s;&|])\.\s+<\("), "downloads and executes code"),
+    (re.compile(r"(?i)\bosascript\b|\bautomator\b|\bshortcuts\s+run\b"),
+     "runs a script that can control other apps"),
+    (re.compile(r"(?i)\b(chmod|chown|chgrp)\b"), "changes file permissions or ownership"),
+    (re.compile(r"(?i)\b(tee|truncate)\b|\b(sed|perl)\s+(-\w+\s+)*-\w*i"), "overwrites file contents"),
+]
+
+
+def _posix(posix: bool | None) -> bool:
+    return sys.platform != "win32" if posix is None else posix
+
+
+def shell_refusal(command: str, posix: bool | None = None) -> str | None:
+    for pat, why in [*_SHELL_REFUSE, *(_POSIX_REFUSE if _posix(posix) else [])]:
         if pat.search(command):
             return why
     return None
 
 
-def classify_shell(command: str) -> tuple[Tier, str]:
-    hits = [why for pat, why in _SHELL_T3 if pat.search(command)]
+def classify_shell(command: str, posix: bool | None = None) -> tuple[Tier, str]:
+    """`posix` picks the rule set for a zsh command line; by default it follows the OS Jarvis runs on."""
+    is_posix = _posix(posix)
+    hits = [why for pat, why in [*_SHELL_T3, *(_POSIX_T3 if is_posix else [])] if pat.search(command)]
     if hits:
         return Tier.T3, "This command " + "; ".join(dict.fromkeys(hits)) + "."
-    return Tier.T2, "Runs a PowerShell command on your machine."
+    return Tier.T2, f"Runs a {'shell' if is_posix else 'PowerShell'} command on your machine."
 
 
 _EXECUTABLE_EXT = {
     ".exe", ".bat", ".cmd", ".com", ".ps1", ".psm1", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh",
     ".msi", ".msp", ".scr", ".hta", ".cpl", ".jar", ".lnk", ".reg", ".py", ".pyw", ".sh", ".url", ".pif",
+    # macOS: bundles, installers, scripts and automations that run on a double click
+    ".app", ".command", ".tool", ".pkg", ".mpkg", ".dmg", ".scpt", ".scptd", ".applescript", ".workflow",
+    ".action", ".zsh", ".bash", ".terminal", ".inetloc", ".webloc", ".shortcut",
 }
 
 

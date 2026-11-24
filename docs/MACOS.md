@@ -1,0 +1,99 @@
+# JARVIS on macOS — beta, testers wanted
+
+JARVIS started as a Windows app. The macOS port is new: the automated checks pass on a GitHub-hosted Mac
+(tests, the `--doctor` self-check and starting the core), but **nobody has yet driven the HUD by hand on a
+real Mac**. If you have one, ten minutes of your time tells us more than any amount of CI.
+
+Report what you find with the **macOS test report** issue form:
+<https://github.com/ankitjha67/JARVIS/issues/new?template=macos-test-report.yml>
+
+## Requirements
+
+- Apple Silicon Mac (M1 or newer). Intel Macs are not supported yet — PyTorch, which the OCR feature pulls
+  in, no longer ships Intel macOS builds.
+- macOS 13 Ventura or newer.
+- [uv](https://docs.astral.sh/uv/) and Node.js 18+ (`brew install uv node`).
+- One LLM: a cloud API key (Anthropic, OpenAI, Gemini, NVIDIA, OpenRouter, Groq) or a local server
+  (LM Studio or Ollama).
+
+## Install and run
+
+```zsh
+git clone https://github.com/ankitjha67/JARVIS.git
+cd JARVIS
+./setup-macos.sh         # installs dependencies, builds the HUD, prints the doctor report
+uv run jarvis
+```
+
+`uv run jarvis --doctor` prints a pass / warn / fail line for every platform feature. Paste it into your
+report. `uv run jarvis --no-window` runs the core only and prints a URL for the HUD.
+
+## Permissions macOS will ask for
+
+JARVIS runs as a Python process started from your terminal, so macOS attributes its permissions to the
+**terminal app you launched it from** (Terminal, iTerm, Warp, VS Code…). Grant them under
+System Settings → Privacy & Security, then restart JARVIS.
+
+| Permission | Needed for | Without it |
+|---|---|---|
+| Accessibility | Focusing, resizing and closing windows; typing and shortcuts in other apps; reading a window's controls; media keys | Those tools explain which switch to turn on. Listing windows still works, with less detail. |
+| Automation → System Events | Window control, typing, login-item audit | macOS asks the first time; the tool reports a refusal clearly. |
+| Screen & System Audio Recording | Screenshots and "what is on my screen" | Captures show only the desktop picture. |
+| Microphone | Wake word, voice input, voice training | Voice features report that the microphone could not be opened. |
+
+API keys are stored in the macOS Keychain. JARVIS never reads other Keychain items, and the shell tool
+refuses commands that try to (`security find-generic-password`, `dump-keychain`).
+
+## Hotkeys
+
+| Hotkey | Action |
+|---|---|
+| Ctrl+Option+J | Summon JARVIS and focus the command bar |
+| Ctrl+Option+Delete | Kill switch: cancel every run, deny pending approvals |
+
+They are registered through Carbon and need no extra permission. They work while the HUD window is open.
+
+## What works, and how
+
+230 of the 231 tools are available on macOS (the Windows Night Light toggle is not offered).
+
+| Area | macOS implementation | Status |
+|---|---|---|
+| Core: providers, routing, policy, approvals, audit, memory, scheduler, research, agents | Same code as Windows | Verified in CI |
+| HUD window | pywebview on WKWebView, frameless | Needs a human tester |
+| Keys | macOS Keychain via `keyring` | Verified in CI |
+| Shell | `zsh` instead of PowerShell, with its own destructive-command rules (rm, brew, defaults, launchctl, osascript, diskutil…) | Verified in CI |
+| Files, documents, search | Same code; Spotlight (`mdfind`) for system-wide search; deletes go to the Trash | Verified in CI |
+| Clipboard and clipboard history | `pbcopy` / `pbpaste`, change detection through NSPasteboard | Verified in CI |
+| Apps | Scans the Applications folders, launches with `open -a` | Verified in CI |
+| Windows: list | System Events; falls back to the window server's list when Accessibility is off | Needs a human tester |
+| Windows: focus, minimize, zoom, close | System Events (Accessibility) | Needs a human tester |
+| Typing and shortcuts | System Events keystrokes; refuses password fields; long or non-ASCII text is pasted and the clipboard restored | Needs a human tester |
+| Reading and clicking controls (`ui_snapshot`, `ui_click`) | Accessibility tree of the front window; clicks at the control's centre | Experimental |
+| Volume | `osascript` volume settings | Needs a human tester |
+| Media keys | Play/pause, next, previous through Quartz events (there is no separate stop key) | Needs a human tester |
+| Lock, sleep, restart, shut down, sign out | Lock is immediate; the others show the macOS confirmation dialog with its 60-second countdown | Needs a human tester |
+| Screenshots, OCR, vision | `mss` / Pillow | Needs a human tester |
+| Spoken replies, chime | `say` voices and `afplay`; cloud voices unchanged | Needs a human tester |
+| Wake word, speech-to-text, voice training | Same models (ONNX, faster-whisper) | Needs a human tester |
+| Global hotkeys | Carbon `RegisterEventHotKey` | Registration verified in CI; key presses need a human tester |
+| Wi-Fi on/off | `networksetup` | Needs a human tester |
+| Bluetooth on/off, brightness | Need the small Homebrew helpers `blueutil` / `brightness`; the tool says so when missing | Needs a human tester |
+| System Settings pages | `x-apple.systempreferences:` links | Needs a human tester |
+| Startup audit | Login items plus launch agents and daemons | Verified in CI |
+| Incident snapshot, services | Unified log (`log show`) and `launchctl list` | Verified in CI |
+| Phone calls | `tel:` links (FaceTime with a nearby iPhone) or Twilio | Needs a human tester |
+| Browser automation, email, Telegram, Home Assistant, MCP servers, God's Eye View | Same code as Windows | Not yet tried on a Mac |
+| Phone Link, Wispr Flow auto-send, Windows Night Light | Windows only | Not available |
+
+## A ten-minute test
+
+1. Run the setup script and paste the doctor report into the issue form.
+2. Start JARVIS, finish onboarding, send "what time is it?".
+3. Try, one at a time: "open Safari", "list my open windows", "set the volume to 30 percent",
+   "copy hello world to the clipboard", "find files named resume", "lock the screen".
+4. Ask for something that needs approval — "run `ls ~/Desktop` in the shell" — and check the approval card.
+5. Press Ctrl+Option+J from another app; start a long task and press Ctrl+Option+Delete.
+6. Optional: turn on spoken replies and the wake word in Settings.
+
+Logs are in `data/jarvis.log`. Nothing leaves your machine except the requests to the model provider you chose.

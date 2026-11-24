@@ -10,6 +10,7 @@ from typing import Any
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import REGISTRY, Args, ToolError, tool
 
@@ -27,7 +28,7 @@ SIDE_EFFECTS: dict[str, str] = {
     "file_move": "Moves/renames a file",
     "file_copy": "Copies a file to a new location",
     "dir_create": "Creates a new directory",
-    "shell_run": "Executes a shell command (PowerShell)",
+    "shell_run": f"Executes a shell command ({host.SHELL_NAME})",
     "app_launch": "Launches a Windows application",
     "app_close": "Closes an application window",
     "browser_open": "Opens a URL in the browser",

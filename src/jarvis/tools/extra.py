@@ -9,6 +9,7 @@ from pathlib import Path
 
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier, canonical, is_sensitive_path, is_system_path
 from .registry import Args, ToolError, tool
 
@@ -103,11 +104,11 @@ def _delete(a: DeleteArgs) -> dict:
     try:
         send2trash(str(path))
     except OSError as exc:
-        raise ToolError(f"Could not move {path.name} to the Recycle Bin: {exc}.") from exc
+        raise ToolError(f"Could not move {path.name} to the {host.TRASH_NAME}: {exc}.") from exc
     return {"recycled": str(path)}
 
 
-@tool("files_delete", "Send a file or folder to the Recycle Bin (recoverable from there).", DeleteArgs, Tier.T3,
+@tool("files_delete", f"Send a file or folder to the {host.TRASH_NAME} (recoverable from there).", DeleteArgs, Tier.T3,
       sensitive=True, classify=_classify_delete, summary=lambda a: f"Delete {a.path}")
 async def files_delete(a: DeleteArgs) -> dict:
     return await asyncio.to_thread(_delete, a)
@@ -121,16 +122,27 @@ class PowerArgs(Args):
 def _classify_power(a: PowerArgs) -> tuple[Tier, str]:
     if a.action == "cancel":
         return Tier.T1, ""
+    wait = "after the 60-second system dialog" if host.IS_MAC else "in 30 seconds"
     detail = {"sleep": "Puts the computer to sleep.", "sign_out": "Signs you out; unsaved work is lost.",
-              "restart": "Restarts the computer in 30 seconds; unsaved work is lost.",
-              "shutdown": "Shuts the computer down in 30 seconds; unsaved work is lost."}[a.action]
+              "restart": f"Restarts the computer {wait}; unsaved work is lost.",
+              "shutdown": f"Shuts the computer down {wait}; unsaved work is lost."}[a.action]
     return Tier.T3, detail
 
 
-@tool("power_action", "Sleep, restart, shut down or sign out. Restart and shutdown wait 30 seconds and can be cancelled.",
+_POWER_HELP = (
+    "Sleep, restart, shut down or sign out. Restart, shutdown and sign-out show the macOS confirmation dialog, "
+    "which proceeds after 60 seconds unless the user cancels it there." if host.IS_MAC else
+    "Sleep, restart, shut down or sign out. Restart and shutdown wait 30 seconds and can be cancelled.")
+
+
+@tool("power_action", _POWER_HELP,
       PowerArgs, Tier.T3, sensitive=True, classify=_classify_power,
       summary=lambda a: {"cancel": "Cancel pending shutdown"}.get(a.action, a.action.replace("_", " ").capitalize() + " the computer"))
 async def power_action(a: PowerArgs) -> dict:
+    if host.IS_MAC:
+        return await asyncio.to_thread(host.mac.power, a.action)
+    if not host.IS_WINDOWS:
+        raise host.unsupported("Power control")
     commands = {
         "sleep": ["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"],
         "restart": ["shutdown.exe", "/r", "/t", "30", "/c", "Jarvis: restarting in 30 seconds"],
@@ -140,7 +152,7 @@ async def power_action(a: PowerArgs) -> dict:
     }
     proc = await asyncio.to_thread(
         subprocess.run, commands[a.action], capture_output=True, text=True, timeout=15, check=False,
-        creationflags=subprocess.CREATE_NO_WINDOW)
+        creationflags=host.NO_WINDOW)
     if proc.returncode != 0 and a.action != "sleep":
         raise ToolError((proc.stderr or proc.stdout or "Windows refused the request.").strip()[:200])
     return {"action": a.action, "delay_s": 30 if a.action in ("restart", "shutdown") else 0}

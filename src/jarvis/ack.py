@@ -10,6 +10,8 @@ import threading
 import wave
 from typing import Any
 
+from . import host
+
 log = logging.getLogger(__name__)
 
 # Windows keeps its newer voices (George, Ravi, …) in a second registry category that classic SAPI
@@ -18,7 +20,8 @@ _CATEGORIES = (
     r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices",
     r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices",
 )
-PREFERRED_MALE = ("George", "Ravi", "David", "Mark", "James", "Guy", "Ryan")
+PREFERRED_MALE = (("Daniel", "Alex", "Oliver", "Arthur", "Aaron", "Tom", "Fred") if host.IS_MAC
+                  else ("George", "Ravi", "David", "Mark", "James", "Guy", "Ryan"))
 
 _speak_lock = threading.Lock()
 _chime_lock = threading.Lock()
@@ -74,6 +77,13 @@ def list_voices() -> list[dict[str, str]]:
     global _voices_cache
     if _voices_cache is not None:
         return _voices_cache
+    if not host.IS_WINDOWS:
+        try:
+            _voices_cache = host.mac.list_voices() if host.IS_MAC else []
+        except Exception:
+            log.debug("could not list voices", exc_info=True)
+            _voices_cache = []
+        return _voices_cache
     import pythoncom
 
     pythoncom.CoInitialize()
@@ -110,6 +120,10 @@ def _say(text: str, voice_name: str) -> None:
     if not _speak_lock.acquire(blocking=False):
         return  # already speaking; do not stack replies
     try:
+        if not host.IS_WINDOWS:
+            if host.IS_MAC:
+                host.mac.speak(text, voice_name or default_voice())
+            return
         import pythoncom
         import win32com.client
 
@@ -136,11 +150,9 @@ def _ring() -> None:
     if not _chime_lock.acquire(blocking=False):
         return
     try:
-        import winsound
-
         if _chime is None:
             _chime = _build_chime()
-        winsound.PlaySound(_chime, winsound.SND_MEMORY | winsound.SND_NODEFAULT)
+        host.play_wav(_chime)
     except Exception:
         log.debug("chime failed", exc_info=True)
     finally:

@@ -11,12 +11,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import subprocess
 from pathlib import Path
 from typing import Any
 
 from pydantic import Field
 
+from .. import host
 from ..config import DATA_DIR
 from ..policy import Tier
 from .registry import Args, ToolError, tool
@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 _REPO_URL = "https://github.com/bilawalsidhu/gods-eye-view.git"
 _DEFAULT_DIR_NAME = "gods-eye-view"
 _DEV_PORT = 4173
-_NO_WINDOW = subprocess.CREATE_NO_WINDOW
+_NO_WINDOW = host.NO_WINDOW
 
 # Module-level handle so we can stop it later.
 _server_proc: asyncio.subprocess.Process | None = None
@@ -81,7 +81,7 @@ async def gods_eye_setup(a: GodsEyeSetupArgs) -> dict:
         if proc.returncode != 0:
             raise ToolError(f"git clone failed: {err.decode('utf-8', errors='replace')[:400]}")
 
-    npm = "npm.cmd"
+    npm = host.npm()
     proc = await asyncio.create_subprocess_exec(
         npm, "ci",
         cwd=str(target),
@@ -125,12 +125,12 @@ async def gods_eye_start(a: GodsEyeStartArgs) -> dict:
     if _server_proc is not None and _server_proc.returncode is None:
         return {"already_running": True, "port": _DEV_PORT}
 
-    npm = "npm.cmd"
+    npm = host.npm()
     _server_proc = await asyncio.create_subprocess_exec(
         npm, "run", "dev",
         cwd=str(target),
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-        creationflags=_NO_WINDOW,
+        **host.child_kwargs(),
     )
 
     # Wait briefly for the server to start listening.
@@ -170,12 +170,7 @@ async def gods_eye_stop(a: GodsEyeStopArgs) -> dict:
         return {"already_stopped": True}
 
     pid = _server_proc.pid
-    killer = await asyncio.create_subprocess_exec(
-        "taskkill.exe", "/PID", str(pid), "/T", "/F",
-        stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
-        creationflags=_NO_WINDOW,
-    )
-    await killer.wait()
+    await asyncio.to_thread(host.kill_tree, pid)
     _server_proc = None
     return {"stopped": True}
 

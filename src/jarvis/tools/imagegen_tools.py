@@ -11,11 +11,12 @@ from pathlib import Path
 from pydantic import Field
 
 from ..config import DATA_DIR
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
 _OUTPUT_DIR = DATA_DIR / "generated_images"
-_NO_WINDOW = subprocess.CREATE_NO_WINDOW
+_NO_WINDOW = host.NO_WINDOW
 
 
 # ---------------------------------------------------------------------------

@@ -13,6 +13,7 @@ from typing import Any
 import psutil
 from pydantic import Field
 
+from .. import host
 from ..policy import Tier
 from .registry import Args, ToolError, tool
 
@@ -52,7 +53,7 @@ def _check_one(w: dict[str, Any]) -> dict[str, Any]:
         value = psutil.virtual_memory().percent
         triggered = value > threshold
     elif cond == "disk_above":
-        disk_path = target or "C:\\"
+        disk_path = target or host.SYSTEM_DISK
         value = psutil.disk_usage(disk_path).percent
         triggered = value > threshold
     elif cond == "process_running":

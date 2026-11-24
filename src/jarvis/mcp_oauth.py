@@ -7,8 +7,9 @@ pieces it needs from the host:
 - **Opening the browser** on the connector's sign-in page (https only).
 - **Receiving the answer** on Jarvis's own loopback server (`/oauth/mcp/callback`), matched to the connector
   that is waiting by the one-time `state` value, and only for a few minutes.
-- **Keeping the tokens**, encrypted with Windows DPAPI for the current Windows user, in data/mcp_oauth/.
-  They are never written to settings, logs or the audit trail. Removing the connector deletes them.
+- **Keeping the tokens**: on Windows encrypted with DPAPI for the current user in data/mcp_oauth/; on macOS
+  in the login Keychain. They are never written to settings, logs or the audit trail. Removing the
+  connector deletes them.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import sys
 import webbrowser
 from collections.abc import Awaitable, Callable
 from pathlib import Path
@@ -27,6 +29,8 @@ from .config import DATA_DIR, HOST, PORT
 log = logging.getLogger(__name__)
 
 TOKEN_DIR = DATA_DIR / "mcp_oauth"
+KEYRING_SERVICE = "jarvis-mcp-oauth"
+_USE_KEYRING = sys.platform != "win32"  # no DPAPI: the OS keyring (macOS Keychain) holds the tokens
 CALLBACK_PATH = "/oauth/mcp/callback"
 SIGN_IN_TIMEOUT_S = 300.0
 
@@ -53,17 +57,28 @@ class TokenStore:
     def __init__(self, name: str, directory: Path | None = None) -> None:
         safe = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in name)
         self.path = (directory or TOKEN_DIR) / f"{safe}.bin"
+        self._account = safe
 
     def _load(self) -> dict[str, Any]:
         try:
+            if _USE_KEYRING:
+                import keyring
+
+                raw = keyring.get_password(KEYRING_SERVICE, self._account)
+                return dict(json.loads(raw)) if raw else {}
             return dict(json.loads(_unprotect(self.path.read_bytes())))
         except FileNotFoundError:
             return {}
-        except Exception:  # noqa: BLE001 - unreadable (other Windows user, damaged): sign in again
+        except Exception:  # noqa: BLE001 - unreadable (other user, damaged): sign in again
             log.warning("stored sign-in for %s could not be read; signing in again", self.path.stem)
             return {}
 
     def _save(self, data: dict[str, Any]) -> None:
+        if _USE_KEYRING:
+            import keyring
+
+            keyring.set_password(KEYRING_SERVICE, self._account, json.dumps(data))
+            return
         self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(".tmp")
         tmp.write_bytes(_protect(json.dumps(data).encode()))
@@ -73,6 +88,15 @@ class TokenStore:
         return "tokens" in self._load()
 
     def forget(self) -> None:
+        if _USE_KEYRING:
+            import keyring
+            from keyring.errors import KeyringError
+
+            try:
+                keyring.delete_password(KEYRING_SERVICE, self._account)
+            except KeyringError:
+                pass  # nothing was stored
+            return
         self.path.unlink(missing_ok=True)
 
     async def get_tokens(self) -> Any:
