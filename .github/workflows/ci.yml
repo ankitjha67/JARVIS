@@ -29,6 +29,7 @@ jobs:
     env:
       JARVIS_DATA_DIR: ${{ github.workspace }}/ci-data
       JARVIS_DOCTOR_WRITE: "1"
+      JARVIS_DESKTOP_TESTS: "1"  # tests/test_macos_desktop.py drives real apps on the macOS runner
       PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
@@ -55,7 +56,11 @@ jobs:
         run: npm --prefix ui test
 
       - name: Python tests
-        run: uv run pytest -q
+        run: uv run pytest -q -rs --deselect tests/test_macos_desktop.py
+
+      - name: macOS desktop tests (real windows, typing, HUD launch)
+        if: ${{ runner.os == 'macOS' && !cancelled() }}
+        run: uv run pytest tests/test_macos_desktop.py -v
 
       - name: Doctor (what works on this runner)
         if: ${{ !cancelled() }}
