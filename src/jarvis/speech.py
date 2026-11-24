@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import io
 import logging
+import re
 import threading
 import wave
 from dataclasses import dataclass
@@ -37,7 +38,7 @@ TIMEOUT_S = 20.0
 class Engine:
     id: str
     label: str
-    kind: str  # local | openai | deepgram | elevenlabs | unavailable
+    kind: str  # local | openai | deepgram | elevenlabs | riva | unavailable
     model: str = ""
     voice: str = ""
     note: str = ""
@@ -58,8 +59,13 @@ STT_ENGINES: tuple[Engine, ...] = (
            note="FREE: 60 min/month. Key: google_cloud"),
     Engine("azure", "Azure Speech", "azure", "",
            note="FREE: 5 hours/month. Key: azure_speech"),
-    Engine("nvidia", "NVIDIA speech (gRPC only, not HTTP)", "unavailable"),
+    Engine("nvidia", "NVIDIA · Parakeet TDT 0.6B v2", "riva", "parakeet-tdt-0.6b-v2",
+           note="Uses your NVIDIA key. English, with punctuation; about half a second per request."),
 )
+# NVIDIA hosts speech models behind gRPC (Riva), each addressed by a function id rather than a model name.
+# Another hosted NVIDIA speech model can be used by putting its function id in the engine's model field.
+NVIDIA_SPEECH_HOST = "grpc.nvcf.nvidia.com:443"
+NVIDIA_STT_FUNCTIONS = {"parakeet-tdt-0.6b-v2": "d3fe9151-442b-4204-a70d-5fcc597fd610"}
 TTS_ENGINES: tuple[Engine, ...] = (
     Engine("system", "Windows voice (on this computer)", "local", note="Private and instant."),
     Engine("edge_tts", "Microsoft Edge TTS (free, no key)", "edge_tts", "", "en-US-GuyNeural",
@@ -76,7 +82,7 @@ TTS_ENGINES: tuple[Engine, ...] = (
     Engine("nvidia", "NVIDIA Magpie TTS (gRPC only, not HTTP)", "unavailable"),
 )
 
-STT_FALLBACK_ORDER = ["groq", "deepgram", "openai", "assemblyai", "google_cloud", "azure", "elevenlabs", "local"]
+STT_FALLBACK_ORDER = ["groq", "nvidia", "deepgram", "openai", "assemblyai", "google_cloud", "azure", "elevenlabs", "local"]
 TTS_FALLBACK_ORDER = ["edge_tts", "piper", "groq", "openai", "deepgram", "elevenlabs", "system"]
 
 
@@ -129,6 +135,44 @@ def _check(response: Any, what: str) -> Any:
     return response
 
 
+_riva_lock = threading.Lock()
+_riva_services: dict[tuple[str, str], Any] = {}  # (function id, key) -> a connected service, kept warm
+
+
+def _transcribe_riva(pcm: Any, key: str, model: str) -> str:
+    """One utterance through NVIDIA's hosted speech service (gRPC)."""
+    if not key:
+        raise RuntimeError("no key saved for nvidia")
+    function_id = NVIDIA_STT_FUNCTIONS.get(model, model)
+    if not re.fullmatch(r"[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", function_id):
+        raise RuntimeError(f"unknown NVIDIA speech model: {model}")
+    try:
+        import riva.client
+        from riva.client.proto import riva_asr_pb2
+    except ImportError as exc:
+        raise RuntimeError("the NVIDIA speech client is not installed (uv sync)") from exc
+    with _riva_lock:
+        service = _riva_services.get((function_id, key))
+        if service is None:
+            auth = riva.client.Auth(uri=NVIDIA_SPEECH_HOST, use_ssl=True, metadata_args=[
+                ["function-id", function_id], ["authorization", f"Bearer {key}"]])
+            service = _riva_services[(function_id, key)] = riva.client.ASRService(auth)
+    config = riva.client.RecognitionConfig(
+        encoding=riva.client.AudioEncoding.LINEAR_PCM, sample_rate_hertz=SAMPLE_RATE, audio_channel_count=1,
+        language_code="en-US", max_alternatives=1, enable_automatic_punctuation=True)
+    audio = pcm if isinstance(pcm, bytes | bytearray) else pcm.astype("<i2").tobytes()
+    try:
+        response = service.stub.Recognize(riva_asr_pb2.RecognizeRequest(config=config, audio=bytes(audio)),
+                                          metadata=service.auth.get_auth_metadata(), timeout=TIMEOUT_S)
+    except Exception as exc:
+        with _riva_lock:
+            _riva_services.pop((function_id, key), None)  # reconnect next time
+        details = getattr(exc, "details", None)  # gRPC errors carry the server's own message here
+        detail = (details() if callable(details) else "") or str(exc)
+        raise RuntimeError(f"NVIDIA transcription failed: {secrets.redact(str(detail))[:200]}") from exc
+    return " ".join(r.alternatives[0].transcript.strip() for r in response.results if r.alternatives).strip()
+
+
 def _transcribe_one(pcm: Any, engine_id: str, settings: dict[str, Any], model: str = "",
                     client: Any = None) -> str:
     """Send one utterance to a single engine. Raises on any failure."""
@@ -140,6 +184,8 @@ def _transcribe_one(pcm: Any, engine_id: str, settings: dict[str, Any], model: s
     engine, base = found
     key = secrets.get_key(engine.id)
     model = model or engine.model
+    if engine.kind == "riva":
+        return _transcribe_riva(pcm, key or "", model)
     wav = to_wav(pcm)
     http = client or httpx.Client(timeout=TIMEOUT_S)
     try:

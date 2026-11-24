@@ -386,6 +386,36 @@ wheels = [
 ]
 
 [[package]]
+name = "grpcio"
+version = "1.85.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/90/c7/37a4a43210ef2ecbf570a84e66c61c8a197db3c4057dc23b20263875f9af/grpcio-1.85.4.tar.gz", hash = "sha256:45c4efd77dbfbb92cfebe493518c7e2a97ef3f4da2673508f81214b7493d7cca", size = 14119566, upload-time = "2026-11-24T10:08:14.94Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/cb/0e6cc6b5572c8342f252da091ac76d72089f3d43023de9cb4ac8a1279d25/grpcio-1.85.4-cp312-cp312-macosx_11_0_universal2.whl", hash = "sha256:fdef87319acc8cf73b31c0c010139a4c2b68452772cde86e63634a1100eafe20", size = 12632721, upload-time = "2026-11-24T10:06:43.363Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/a8/84db2e5751407490aa4acca2d7776fcb42d741eb62ea6ed8b66314ed7e1a/grpcio-1.85.4-cp312-cp312-win32.whl", hash = "sha256:7f0063de01c843c065e725fcc8d43561f5bbb3acdf804733c545730e64b8ef1b", size = 4770215, upload-time = "2026-11-24T10:06:59.951Z" },
+    { url = "https://files.pythonhosted.org/packages/34/5d/24d7231068da599af52bb1cf8dc7cc6695f337c26340ee74b8918b68cf8a/grpcio-1.85.4-cp312-cp312-win_amd64.whl", hash = "sha256:cb33c14aed353483b053e85614befd7862db0db27e32c54666436827a45eaf74", size = 5607344, upload-time = "2026-11-24T10:07:01.943Z" },
+]
+
+[[package]]
+name = "grpcio-tools"
+version = "1.85.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "grpcio", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
+    { name = "protobuf", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
+    { name = "setuptools", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/41/09/ae0608d2a45add37c4a16cfbdab50dcb32b28aed21988bc6e433b414df31/grpcio_tools-1.85.4.tar.gz", hash = "sha256:85a46eb8b59c208138c36a936a7407b27d466130053ed35957b39f13a939f24b", size = 6650086, upload-time = "2026-11-24T10:10:21.259Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c4/56/4b1a36a34a97013ad32c6b0c13ffbf57be275180a8675455fd53c1848935/grpcio_tools-1.85.4-cp312-cp312-macosx_11_0_universal2.whl", hash = "sha256:3af662fec11145dc070ca77a94e86698da7e3e4a336b911ba3f6179058918372", size = 5977013, upload-time = "2026-11-24T10:09:02.986Z" },
+    { url = "https://files.pythonhosted.org/packages/6d/a0/b67a93cbc2bd00b3b92d380123e7f986e4b748a1eb489831791f72ab00e8/grpcio_tools-1.85.4-cp312-cp312-win32.whl", hash = "sha256:a1622e24a0eb7bc61aecadb3f80c55c3c4fee84729e832595c1690cc1b4fa8f5", size = 1044466, upload-time = "2026-11-24T10:09:16.555Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/68/19fd176c2fc12defb1ca9678a238fe4f51367967d593bb0578abf3fec216/grpcio_tools-1.85.4-cp312-cp312-win_amd64.whl", hash = "sha256:a6194f61acfd397b672ebaf68917248f5d45db7d080f0ed0dec7e75a5eda0b1d", size = 1213155, upload-time = "2026-11-24T10:09:18.284Z" },
+]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -573,6 +603,7 @@ dependencies = [
     { name = "mcp", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
     { name = "mss", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
     { name = "nvidia-ml-py", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
+    { name = "nvidia-riva-client", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
     { name = "onnxruntime", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
     { name = "openai", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
     { name = "openwakeword", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
@@ -608,6 +639,7 @@ requires-dist = [
     { name = "mcp", specifier = ">=1.2" },
     { name = "mss", specifier = ">=9.0" },
     { name = "nvidia-ml-py", specifier = ">=12.560" },
+    { name = "nvidia-riva-client", specifier = ">=2.19" },
     { name = "onnxruntime", specifier = ">=1.20" },
     { name = "openai", specifier = ">=3.0" },
     { name = "openwakeword", specifier = ">=0.6" },
@@ -863,6 +895,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fd/30/b25216758be3d3e2834825d8193609e2d71c770a8bd7984438c058c90268/nvidia_ml_py-13.615.71.tar.gz", hash = "sha256:bebe4e48f51b1dc75028c0815cb7bfa14a31a5bb80be70c9d980c6036953fc3d", size = 57485, upload-time = "2026-09-25T15:15:28.226Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/53/a1/1681dfa1c904d4e3e72e51b55a0ff012d50b766843ef832d584abe2113c6/nvidia_ml_py-13.615.71-py3-none-any.whl", hash = "sha256:959bf4adf6fe1308e4bd739e722236b0d1ec8392e2cefad33ff70c311380b9b6", size = 58132, upload-time = "2026-09-25T15:15:26.54Z" },
+]
+
+[[package]]
+name = "nvidia-riva-client"
+version = "2.28.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "grpcio", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
+    { name = "grpcio-tools", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
+    { name = "protobuf", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
+    { name = "websockets", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or sys_platform == 'win32'" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/54/28/f1d08e8e8244c7735bfbaf16d572a37e24e06a7d64e45eefc36bd0b8ffce/nvidia_riva_client-2.28.0-py3-none-any.whl", hash = "sha256:57fa2f4dd7004a70583ac8a794fa6b165bbe62a5d284a50c2d2b45f3cf4e4987", size = 59275, upload-time = "2026-11-06T07:56:45.297Z" },
 ]
 
 [[package]]
@@ -1719,18 +1765,15 @@ wheels = [
 
 [[package]]
 name = "websockets"
-version = "17.4"
+version = "15.0.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/75/79/590c5f0cc7d1661195aeefccb0e342b79f4c77d368d526d028821a390332/websockets-17.4.tar.gz", hash = "sha256:09d3939b70df0c8ad2da145ebd50978bccaee1d565e838b0e7921a34d38571eb", size = 191391, upload-time = "2026-10-30T15:10:35.873Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/21/e6/26d09fab466b7ca9c7737474c52be4f76a40301b08362eb2dbc19dcc16c1/websockets-15.0.1.tar.gz", hash = "sha256:82544de02076bafba038ce055ee6412d68da13ab47f0c60cab827346de828dee", size = 177016, upload-time = "2025-03-05T20:03:41.606Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/71/b020221345ea6c012dcf7496827a48a744b58696470b2b07fef95a32905a/websockets-17.4-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:3d512e3a6c528c42ce220ed9c3caff83c6fdcd98a1b98249f08ccfc66ad111b1", size = 218779, upload-time = "2026-10-30T15:07:11.522Z" },
-    { url = "https://files.pythonhosted.org/packages/74/b6/cff249107473f149c6c916a49cba967379fa63b0a7d2dce6896d6848f0a3/websockets-17.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:bcad49104711f88b2b7c3ba166de172857d837248205e541b044a552558fecc3", size = 216726, upload-time = "2026-10-30T15:07:14.468Z" },
-    { url = "https://files.pythonhosted.org/packages/39/99/85f6f4dd104a5d9a33a1ef272f501d0f2e8527ddf66be1b383d51f90ce56/websockets-17.4-cp312-cp312-win32.whl", hash = "sha256:c63c0d7832956d5f3bb77888b93c854569d13f806289ff75c43926d25c6e5fd2", size = 219256, upload-time = "2026-10-30T15:07:37.686Z" },
-    { url = "https://files.pythonhosted.org/packages/59/31/d1636ba67ee9232a60033d90483e48686aa3856014e59110f29015f97bd2/websockets-17.4-cp312-cp312-win_amd64.whl", hash = "sha256:dde9cd67f18803949ebf96de8aba12b8ec5ee3115e34c75a2db85a3b0a6c20d5", size = 219561, upload-time = "2026-10-30T15:07:39.19Z" },
-    { url = "https://files.pythonhosted.org/packages/23/aa/e3859d52188f041a5a05c9f3ac005a9c829723f521f0fe60e2c5f9c93bb9/websockets-17.4-cp312-cp312-win_arm64.whl", hash = "sha256:c634053459278cf31fb404ddb5ecd38124e4609e8b609166da621edc2d5796db", size = 219487, upload-time = "2026-10-30T15:07:41.161Z" },
-    { url = "https://files.pythonhosted.org/packages/d3/de/1bf313cd0f4662df4884a7602932cd13347090e59dd6047865eee2bb5aa5/websockets-17.4-pp312-pypy312_pp80-macosx_11_0_arm64.whl", hash = "sha256:4fb2db1f649b6464711846b5bb9c1611bd906ce939d9460cbd1fa419552cd6c3", size = 216664, upload-time = "2026-10-30T15:10:27.016Z" },
-    { url = "https://files.pythonhosted.org/packages/b2/49/eed86bfb8863093a82cbaa52c9159be1ce2374d5ace6fe1f8e8031567e7d/websockets-17.4-pp312-pypy312_pp80-win_amd64.whl", hash = "sha256:829bcaa90be8737c132d9515d6a466e8528e3b3d050d3f3466f36ea94d3beb48", size = 306838, upload-time = "2026-10-30T15:10:32.954Z" },
-    { url = "https://files.pythonhosted.org/packages/eb/27/9db924cb0dbf22eade78d98fbae77790f9bf6bc729e6ab29aef9d68e4156/websockets-17.4-py3-none-any.whl", hash = "sha256:c6bd2c9781915592b209160d0f017d4c7c82ad53075e6b0c24d2a89299e7f9e9", size = 212900, upload-time = "2026-10-30T15:10:34.482Z" },
+    { url = "https://files.pythonhosted.org/packages/51/6b/4545a0d843594f5d0771e86463606a3988b5a09ca5123136f8a76580dd63/websockets-15.0.1-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:3e90baa811a5d73f3ca0bcbf32064d663ed81318ab225ee4f427ad4e26e5aff3", size = 175437, upload-time = "2025-03-05T20:02:16.706Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/69/1a681dd6f02180916f116894181eab8b2e25b31e484c5d0eae637ec01f7c/websockets-15.0.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:0701bc3cfcb9164d04a14b149fd74be7347a530ad3bbf15ab2c678a2cd3dd9a2", size = 173332, upload-time = "2025-03-05T20:02:20.187Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/83/de1f7709376dc3ca9b7eeb4b9a07b4526b14876b6d372a4dc62312bebee0/websockets-15.0.1-cp312-cp312-win32.whl", hash = "sha256:c338ffa0520bdb12fbc527265235639fb76e7bc7faafbb93f6ba80d9c06578a9", size = 176395, upload-time = "2025-03-05T20:02:33.017Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/71/abf2ebc3bbfa40f391ce1428c7168fb20582d0ff57019b69ea20fa698043/websockets-15.0.1-cp312-cp312-win_amd64.whl", hash = "sha256:fcd5cf9e305d7b8338754470cf69cf81f420459dbae8a3b40cee57417f4614a7", size = 176841, upload-time = "2025-03-05T20:02:34.498Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/a8/5b41e0da817d64113292ab1f8247140aac61cbf6cfd085d6a0fa77f4984f/websockets-15.0.1-py3-none-any.whl", hash = "sha256:f7a866fbc1e97b5c617ee4116daaa09b722101d4a3c170c787450ba409f9736f", size = 169743, upload-time = "2025-03-05T20:03:39.41Z" },
 ]
 
 [[package]]

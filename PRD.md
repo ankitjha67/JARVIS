@@ -576,6 +576,7 @@ Status legend: ☐ not started · ◐ partial · ☑ done & verified
 
 **Changelog**
 
+- **1.3.2 — 2026-11-24** — **NVIDIA speech-to-text.** FR-V8 gains NVIDIA Parakeet TDT 0.6B v2 over gRPC, using the existing NVIDIA key (new dependency `nvidia-riva-client`). Canary-Qwen 2.5B is not hosted by NVIDIA and cannot be reached with that key. 4 new tests; live call checked on synthesized speech, not yet on the microphone.
 - **1.3.1 — 2026-11-24** — **Running in the background (Windows).** Closing the window hides it instead of quitting, so the wake word and the summon hotkey keep working. Notification-area icon (microphone status, Open, wake word toggle, Quit); starting Jarvis again brings the running copy forward; optional start at sign-in (`--background`). Settings `background.keep_running` (on) and `background.start_at_login` (off). macOS unchanged. 6 new tests; icon menu and sign-in start not yet tried by hand.
 - **1.3.0 — 2026-11-24** — **macOS support (beta, Apple Silicon).**
   - New `jarvis.host` package owns everything OS-specific; 35 modules no longer call Win32, PowerShell or the registry directly. Windows behaviour unchanged (222 pytest pass, Windows CI green).

@@ -453,3 +453,14 @@ Maintained in section 9.
 - Checked on this PC: 228 pytest pass (6 new in `tests/test_background.py`); on the real app, close hides and keeps the core answering, a second launch shows the window again and it repaints correctly, `--background` starts hidden, and with the setting off closing quits and removes the icon.
 - **Not verified by hand:** clicking the icon and its menu (Open, wake toggle, Quit), the first-hide notification's appearance, and an actual sign-in start. The wake word bringing the hidden window forward uses the same `bring_forward` as the second-launch test but was not spoken aloud.
 - **Finding, no code change:** with a dictation shortcut set (`voice.wake_keys`, Wispr Flow), the live text by the sphere is Jarvis's own recogniser and the text typed into the command bar is the dictation app's. They are two recognisers and disagree on quiet speech. Clearing the shortcut makes Jarvis send exactly what it showed.
+
+### 2026-11-24 — Session 3, later: NVIDIA speech-to-text
+
+- User asked whether the saved NVIDIA key reaches Canary-Qwen 2.5B and Parakeet TDT, and to use them for speech-to-text if so.
+- **Parakeet TDT 0.6B v2: yes.** NVIDIA hosts it behind gRPC (Riva) at `grpc.nvcf.nvidia.com:443`, addressed by function id `d3fe9151-442b-4204-a70d-5fcc597fd610`, not by the OpenAI-style HTTP API the chat models use. Tried with the saved key on a synthesized sentence: correct at normal volume and at 8% volume, about 0.6 s per request once connected (2.3 s for the first).
+- **Canary-Qwen 2.5B: no.** It is not in NVIDIA's hosted catalogue (search returns nothing; the model page is empty). It is published on Hugging Face and Replicate only, so the NVIDIA key cannot reach it. Running it locally needs far more than this PC's 4 GB VRAM. Parakeet TDT 0.6B v3 is not hosted either.
+- `speech.py`: the `nvidia` speech-to-text engine is now real (`kind="riva"`, `_transcribe_riva`), keeps one connection warm per key, has a 20 s timeout, and drops the connection after a failure. Another hosted NVIDIA speech model can be used by putting its function id in `voice.stt_cloud_model`. NVIDIA is second in the fallback chain. NVIDIA text-to-speech is still not wired.
+- New dependency `nvidia-riva-client` (brings `grpcio`, `grpcio-tools`); it pinned `websockets` back from 17.4 to 15.0.1. The HUD WebSocket still connects and all tests pass.
+- This PC is now set to `voice.stt_engine = "nvidia"` and the Wispr Flow shortcut (`voice.wake_keys`) is cleared, at the user's request. The wake word itself is still detected on this computer; only the request spoken after it goes to NVIDIA.
+- Checks: 232 pytest pass (4 new in `tests/test_nvidia_speech.py`, no network). **Not verified:** a real spoken request through the microphone with the new engine.
+

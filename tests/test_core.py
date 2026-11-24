@@ -622,7 +622,8 @@ def test_cloud_speech_engines_build_the_right_requests_and_respect_privacy(monke
     cat = speech.catalogue(settings)
     by_id = {e["id"]: e for e in cat["stt"]}
     assert by_id["local"]["ready"] and by_id["groq"]["ready"] and not by_id["openai"]["ready"]
-    assert not by_id["nvidia"]["selectable"]
+    assert by_id["nvidia"]["selectable"] and not by_id["nvidia"]["ready"]          # offered, but no key saved here
+    assert not {e["id"]: e for e in cat["tts"]}["nvidia"]["selectable"]              # NVIDIA voices are still not wired
     assert not {e["id"]: e for e in speech.catalogue({**settings, "privacy_mode": "local"})["stt"]}["groq"]["ready"]
 
     spoken: list[str] = []
