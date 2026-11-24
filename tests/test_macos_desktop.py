@@ -154,8 +154,10 @@ def test_zoom_changes_the_frame_and_close_removes_the_window(textedit):
     def fresh() -> list[dict]:
         return [w for w in _textedit_windows() if "untouched" in w["title"]]
 
-    assert _wait(fresh, timeout=30), [w["title"] for w in _textedit_windows()]
-    mac.window_action(fresh()[0], "close")
+    opened = _wait(fresh, timeout=30)
+    assert opened, [w["title"] for w in _textedit_windows()]
+    time.sleep(1.0)  # let the opening animation finish; a window mid-animation can drop out of one listing
+    mac.window_action(opened[0], "close")
     assert _wait(lambda: not fresh(), timeout=10), "the window did not close"
 
 
