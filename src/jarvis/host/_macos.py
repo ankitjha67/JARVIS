@@ -471,7 +471,7 @@ def type_text(text: str, *, clear: bool = False, enter: bool = False) -> str:
 
 _MODIFIERS = {"cmd": "command", "command": "command", "win": "command", "meta": "command", "super": "command",
               "ctrl": "control", "control": "control", "alt": "option", "option": "option", "opt": "option",
-              "shift": "shift", "fn": "function"}
+              "shift": "shift"}
 _KEY_CODES = {
     "enter": 36, "return": 36, "tab": 48, "space": 49, "backspace": 51, "esc": 53, "escape": 53,
     "delete": 117, "del": 117, "home": 115, "end": 119, "pageup": 116, "pagedown": 121,
@@ -509,16 +509,15 @@ _HOTKEY_SCRIPT = """
 on run argv
   set kind to item 1 of argv
   set val to item 2 of argv
-  set mods to {}
-  repeat with m in (rest of rest of argv)
-    set m to m as text
-    if m is "command" then set end of mods to command down
-    if m is "control" then set end of mods to control down
-    if m is "option" then set end of mods to option down
-    if m is "shift" then set end of mods to shift down
-    if m is "function" then set end of mods to function down
-  end repeat
   tell application "System Events"
+    set mods to {}
+    repeat with m in (rest of rest of argv)
+      set m to m as text
+      if m is "command" then set end of mods to command down
+      if m is "control" then set end of mods to control down
+      if m is "option" then set end of mods to option down
+      if m is "shift" then set end of mods to shift down
+    end repeat
     if kind is "code" then
       if (count of mods) is 0 then
         key code (val as integer)

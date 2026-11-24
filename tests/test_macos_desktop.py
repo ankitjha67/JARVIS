@@ -99,7 +99,8 @@ def test_typing_non_ascii_and_multiple_lines_keeps_the_clipboard(textedit):
     assert _wait(lambda: _document_text() == "café ✓ 日本", timeout=10), _document_text()
     assert host.clipboard_get() == "keep me"
     mac.type_text("one\ntwo", clear=True)
-    assert _wait(lambda: _document_text() == "one\ntwo", timeout=10), repr(_document_text())
+    # TextEdit auto-capitalises the first letter once the line is ended, so compare without case.
+    assert _wait(lambda: _document_text().lower() == "one\ntwo", timeout=10), repr(_document_text())
 
 
 def test_shortcut_selects_all_so_typing_replaces(textedit):
@@ -108,7 +109,7 @@ def test_shortcut_selects_all_so_typing_replaces(textedit):
     mac.type_text("first", clear=True)
     mac.send_hotkey("cmd+a")
     mac.type_text("second")
-    assert _wait(lambda: _document_text() == "second", timeout=10), _document_text()
+    assert _wait(lambda: _document_text().lower() == "second", timeout=10), _document_text()
 
 
 def test_snapshot_lists_controls_and_a_click_lands(textedit):
@@ -134,7 +135,7 @@ async def test_the_tools_themselves_work_end_to_end(textedit):
     ref = next(e["ref"] for e in snapshot["elements"] if e["type"] == "edit")
     typed = await REGISTRY["ui_type"].handler(REGISTRY["ui_type"].args_model(text="via tools", ref=ref, clear=True))
     assert typed["typed_chars"] == 9
-    assert _wait(lambda: _document_text() == "via tools", timeout=10), _document_text()
+    assert _wait(lambda: _document_text().lower() == "via tools", timeout=10), _document_text()
     hotkey = REGISTRY["ui_hotkey"]
     assert (await hotkey.handler(hotkey.args_model(keys="cmd+a")))["sent"] == "cmd+a"
     apps = await REGISTRY["apps_search"].handler(REGISTRY["apps_search"].args_model(name="textedit"))
