@@ -58,9 +58,11 @@ jobs:
         run: uv run pytest -q
 
       - name: Doctor (what works on this runner)
+        if: ${{ !cancelled() }}
         run: uv run jarvis --doctor
 
       - name: Start the core and check it answers
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
           uv run jarvis --no-window > core.log 2>&1 &

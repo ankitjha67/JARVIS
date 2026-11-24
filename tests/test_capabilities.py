@@ -88,9 +88,11 @@ def test_browser_rejects_non_web_urls_and_bad_refs():
 def test_hotkey_parsing_and_refusals():
     hk = REGISTRY["ui_hotkey"]
     assert hk.classify_call(hk.args_model(keys="ctrl+s"))[0] == Tier.T2
-    assert hk.classify_call(hk.args_model(keys="win+l"))[0] == Tier.T1
-    with pytest.raises(ToolError):
-        hk.classify_call(hk.args_model(keys="ctrl+alt+delete"))
+    lock = "ctrl+cmd+q" if sys.platform == "darwin" else "win+l"
+    assert hk.classify_call(hk.args_model(keys=lock))[0] == Tier.T1
+    if sys.platform == "win32":  # the secure attention sequence exists only on Windows
+        with pytest.raises(ToolError):
+            hk.classify_call(hk.args_model(keys="ctrl+alt+delete"))
     with pytest.raises(ToolError):
         hk.classify_call(hk.args_model(keys="ctrl+banana"))
 
@@ -100,7 +102,9 @@ def test_delete_and_power_are_t3_and_guarded(tmp_path):
     target = tmp_path / "old.txt"
     target.write_text("x")
     assert d.classify_call(d.args_model(path=str(target)))[0] == Tier.T3
-    for bad in ("C:\\", "C:\\Users", "~", r"~\.ssh\id_rsa", r"C:\Windows\System32\drivers"):
+    refused = (("C:\\", "C:\\Users", "~", r"~\.ssh\id_rsa", r"C:\Windows\System32\drivers") if sys.platform == "win32"
+               else ("/", "/Users", "~", "~/.ssh/id_rsa", "/System/Library/Fonts", "/Volumes/Backup"))
+    for bad in refused:
         with pytest.raises(ToolError):
             d.classify_call(d.args_model(path=bad))
     p = REGISTRY["power_action"]

@@ -19,7 +19,7 @@ def _guard(raw: str, *, write: bool = False) -> Path:
     if is_sensitive_path(path):
         raise ToolError("That location holds credentials or private keys and is off limits to Jarvis.")
     if write and is_system_path(path):
-        raise ToolError("Jarvis does not change files inside Windows or Program Files.")
+        raise ToolError("Jarvis does not change files inside the operating system or installed applications.")
     return path
 
 
@@ -87,12 +87,13 @@ class DeleteArgs(Args):
 
 def _classify_delete(a: DeleteArgs) -> tuple[Tier, str]:
     path = _guard(a.path, write=True)
-    if len(path.parts) <= 2:
+    mounted_volume = not host.IS_WINDOWS and len(path.parts) == 3 and path.parts[1] == "Volumes"
+    if len(path.parts) <= 2 or mounted_volume:
         raise ToolError("Jarvis will not delete a drive or a top-level folder.")
     if path == Path.home():
         raise ToolError("Jarvis will not delete your home folder.")
     kind = "folder and everything in it" if path.is_dir() else "file"
-    return Tier.T3, f"Sends the {kind} {path} to the Recycle Bin."
+    return Tier.T3, f"Sends the {kind} {path} to the {host.TRASH_NAME}."
 
 
 def _delete(a: DeleteArgs) -> dict:

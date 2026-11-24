@@ -20,8 +20,9 @@ _CATEGORIES = (
     r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices",
     r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices",
 )
-PREFERRED_MALE = (("Daniel", "Alex", "Oliver", "Arthur", "Aaron", "Tom", "Fred") if host.IS_MAC
-                  else ("George", "Ravi", "David", "Mark", "James", "Guy", "Ryan"))
+# Windows names first, then the macOS ones; a system only ever has one family installed.
+PREFERRED_MALE = ("George", "Ravi", "David", "Mark", "James", "Guy", "Ryan",
+                  "Daniel", "Alex", "Oliver", "Arthur", "Aaron", "Tom", "Fred")
 
 _speak_lock = threading.Lock()
 _chime_lock = threading.Lock()

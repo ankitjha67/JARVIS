@@ -2,13 +2,13 @@
 
 Living state of the project: what the machine is, what was decided and why, how to run it, and what is done. Read this first in any new session; update it at the end of every session. Product intent lives in [PRD.md](PRD.md).
 
-**Last updated:** 2026-11-22
+**Last updated:** 2026-11-24
 
 ---
 
 ## 1. What this is
 
-A single-user Windows desktop assistant: a Python core that routes requests to local / NVIDIA / frontier LLMs and executes tiered, audited tools on the machine, with a React HUD hosted in a WebView2 window.
+A single-user desktop assistant for Windows (primary) and Apple Silicon macOS (beta): a Python core that routes requests to local / NVIDIA / frontier LLMs and executes tiered, audited tools on the machine, with a React HUD hosted in a WebView2 window.
 
 ## 2. Machine facts (measured 2026-11-20)
 
@@ -50,8 +50,11 @@ E:\Python\Jarvis
 │   ├── store.py                     SQLite: conversations, messages, audit, settings
 │   ├── secrets.py                   keyring wrapper
 │   ├── telemetry.py                 psutil / NVML sampler
-│   ├── hotkeys.py                   Win32 RegisterHotKey thread
-│   ├── shell.py                     pywebview window
+│   ├── host/                        OS layer: __init__ (shared API), _windows, _macos (ADR 11)
+│   ├── errors.py                    ToolError, shared by tools and the OS layer
+│   ├── doctor.py                    `jarvis --doctor` platform self-check
+│   ├── hotkeys.py                   global hotkeys: Win32 RegisterHotKey thread / macOS Carbon
+│   ├── shell.py                     pywebview window (WebView2 / WKWebView)
 │   ├── providers/                   base, openai_compat, anthropic, router
 │   └── tools/                       registry + system, apps, windows, files, shell, media, web, clipboard, power
 ├── tests/                           pytest
@@ -74,6 +77,8 @@ E:\Python\Jarvis
 | 8 | 2026-11-20 | **Keys in Windows Credential Manager** via `keyring` | No secrets in files, DB, logs or the UI bundle | — |
 | 9 | 2026-11-20 | **Hand-written CSS tokens**, no Tailwind/component kit | The "Ion" look is custom; fewer dependencies | UI grows past ~30 components |
 | 10 | 2026-11-20 | Caches redirected to `E:\Python\Jarvis\.cache` (`UV_CACHE_DIR`, `npm_config_cache`) | C: has 1.1 GB free | C: is cleaned up |
+| 11 | 2026-11-24 | **`jarvis.host` owns everything OS-specific**; tools ask it for outcomes. Simple primitives (clipboard, sound, open, lock, shell argv, process trees) are implemented per OS; large Windows features (UIA, window management, audio endpoints) keep their code in the tool module and branch to `host.mac` behind `if host.IS_MAC`. macOS uses only tools that ship with the OS plus PyObjC (already a pywebview dependency); scripts get values as argv, never interpolated | Port to macOS without disturbing verified Windows behaviour or adding dependencies | A third OS, or the in-place Windows branches become hard to follow |
+| 12 | 2026-11-24 | **macOS support is Apple Silicon only**; `tool(..., platforms=)` hides tools an OS cannot offer | PyTorch (via easyocr) has no Intel macOS wheels; a tool that can never work should not be shown to the model | OCR moves off PyTorch |
 
 ## 5. How to run
 
@@ -92,7 +97,11 @@ uv run pytest
 
 Local models: `lms server start` (LM Studio on `127.0.0.1:1234`). Cloud keys: Settings → Models.
 
-Hotkeys: `Ctrl+Alt+J` summon · `Ctrl+Alt+Backspace` kill switch.
+Hotkeys: `Ctrl+Alt+J` summon · `Ctrl+Alt+Backspace` kill switch (macOS: `Ctrl+Option+J` · `Ctrl+Option+Delete`).
+
+macOS (Apple Silicon, beta): `./setup-macos.sh`, then `uv run jarvis`. Tester guide and support matrix: [docs/MACOS.md](docs/MACOS.md).
+
+Self-check on any OS: `uv run jarvis --doctor` (add `--json` for machine-readable output). CI (`.github/workflows/ci.yml`) runs pytest, the HUD tests, the doctor and a core start on `macos-15` and `windows-latest`.
 
 ## 6. Build status
 
@@ -100,7 +109,9 @@ See the end of this file — section 9 is rewritten each session.
 
 ## 7. Conventions
 
-- Python: type hints everywhere, `ruff` defaults, no bare `except`, async for I/O, blocking Win32 calls via `asyncio.to_thread`.
+- Python: type hints everywhere, `ruff` defaults, no bare `except`, async for I/O, blocking OS calls via `asyncio.to_thread`.
+- Nothing outside `jarvis/host/` (and the Windows branches listed in ADR 11) may import `win32*`, `winreg`, `winsound`, `ctypes.windll` or call `powershell`/`osascript` directly. New OS-dependent behaviour goes into `host` with an implementation for both systems, or is declared with `platforms=`.
+- Never build shell or AppleScript text from model or user input: pass it as an argument.
 - Tool names are `snake_case` (provider-safe: `^[a-zA-Z0-9_-]{1,64}$`), grouped by module.
 - Every tool: pydantic args model → `Tier` → handler returning a JSON-serialisable result; failures raise `ToolError` with a user-safe message.
 - Timestamps UTC ISO-8601 in storage and on the wire.

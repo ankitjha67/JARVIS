@@ -144,7 +144,7 @@ class WriteArgs(Args):
 def _classify_write(a: WriteArgs) -> tuple[Tier, str]:
     path = _guard(a.path)
     if is_system_path(path):
-        raise ToolError("Jarvis does not write inside Windows or Program Files.")
+        raise ToolError("Jarvis does not write inside the operating system or installed applications.")
     if path.exists():
         if not a.overwrite:
             raise ToolError(f"{path} already exists. Set overwrite to true to replace it.")

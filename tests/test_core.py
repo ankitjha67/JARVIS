@@ -288,7 +288,7 @@ def test_real_tool_policy_classification():
     fo = reg["files_open"]
     assert fo.classify_call(fo.args_model(path=r"E:\nope\a.pdf"))[0] == Tier.T1
     with pytest.raises(tools.ToolError):
-        fo.classify_call(fo.args_model(path=r"~\.ssh\id_rsa"))
+        fo.classify_call(fo.args_model(path="~/.ssh/id_rsa"))
     assert reg["files_read"].taints and reg["clipboard_read"].taints and sh.taints
 
 
