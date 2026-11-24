@@ -43,17 +43,23 @@ def _textedit_windows() -> list[dict]:
 
 
 def _document_text() -> str:
-    return mac.osascript('tell application "TextEdit" to get text of front document')
+    """The text area's content, read the way Jarvis reads it (no scripting of TextEdit itself)."""
+    for element in mac.ui_snapshot()["elements"]:
+        if element["type"] == "edit":
+            return str(element.get("value", ""))
+    return "<no text area>"
 
 
 @pytest.fixture(scope="module")
-def textedit():
+def textedit(tmp_path_factory):
     if mac.accessibility_granted() is False:
         pytest.skip("Accessibility permission is not granted to this process")
-    mac.osascript('tell application "TextEdit"\nactivate\nmake new document\nend tell', timeout=60)
-    assert _wait(_textedit_windows, timeout=60), "TextEdit never showed a window"
+    document = tmp_path_factory.mktemp("desktop") / "jarvis-desktop-test.txt"
+    document.write_text("", encoding="utf-8")
+    subprocess.run(["/usr/bin/open", "-a", "TextEdit", str(document)], check=True, timeout=60)
+    assert _wait(_textedit_windows, timeout=90, every=2), "TextEdit never showed a window"
     yield
-    mac.osascript('tell application "TextEdit" to quit saving no', timeout=30)
+    subprocess.run(["/usr/bin/killall", "TextEdit"], check=False, timeout=30)
 
 
 def test_window_list_shows_the_app_with_full_detail(textedit):
