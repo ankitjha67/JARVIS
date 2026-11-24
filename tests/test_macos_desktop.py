@@ -58,7 +58,7 @@ def textedit(tmp_path_factory):
     document.write_text("", encoding="utf-8")
     subprocess.run(["/usr/bin/open", "-a", "TextEdit", str(document)], check=True, timeout=60)
     assert _wait(_textedit_windows, timeout=90, every=2), "TextEdit never showed a window"
-    yield
+    yield document.parent
     subprocess.run(["/usr/bin/killall", "TextEdit"], check=False, timeout=30)
 
 
@@ -146,12 +146,17 @@ def test_zoom_changes_the_frame_and_close_removes_the_window(textedit):
     win = _textedit_windows()[0]
     mac.window_action(win, "maximize")
     assert _wait(lambda: _textedit_windows()[0]["rect"] != win["rect"], timeout=10), "zoom did not change the frame"
-    mac.type_text("x", clear=True)
-    mac.send_hotkey("cmd+s")  # nothing left unsaved, so closing shows no sheet
-    time.sleep(1.0)
-    count = len(_textedit_windows())
-    mac.window_action(_textedit_windows()[0], "close")
-    assert _wait(lambda: len(_textedit_windows()) < count, timeout=10), "the window did not close"
+    # Close a window that has nothing unsaved: an edited document would, rightly, ask before closing.
+    untouched = textedit / "untouched.txt"
+    untouched.write_text("nothing to save", encoding="utf-8")
+    subprocess.run(["/usr/bin/open", "-a", "TextEdit", str(untouched)], check=True, timeout=60)
+
+    def fresh() -> list[dict]:
+        return [w for w in _textedit_windows() if "untouched" in w["title"]]
+
+    assert _wait(fresh, timeout=30), [w["title"] for w in _textedit_windows()]
+    mac.window_action(fresh()[0], "close")
+    assert _wait(lambda: not fresh(), timeout=10), "the window did not close"
 
 
 def test_volume_can_be_set_and_read_back():
