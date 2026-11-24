@@ -58,6 +58,16 @@ def test_sign_in_entry_round_trip(monkeypatch):
         tray.set_start_at_login(False)
         assert not tray.starts_at_login()
         tray.set_start_at_login(False)  # removing twice is not an error
+        monkeypatch.setattr(tray, "_RUN_KEY", r"Software\JarvisTest\MissingKey")  # a new account has no list yet
+        try:
+            tray.set_start_at_login(True)
+            assert tray.starts_at_login()
+            tray.set_start_at_login(False)
+        finally:
+            import winreg
+
+            winreg.DeleteKey(winreg.HKEY_CURRENT_USER, r"Software\JarvisTest\MissingKey")
+            winreg.DeleteKey(winreg.HKEY_CURRENT_USER, r"Software\JarvisTest")
     finally:
         tray.set_start_at_login(False)
 

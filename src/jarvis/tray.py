@@ -76,7 +76,8 @@ def set_start_at_login(enabled: bool) -> None:
         return
     import winreg
 
-    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
+    # A brand-new Windows account may not have this key yet, so it is created when missing.
+    with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, _RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
         if enabled:
             winreg.SetValueEx(key, _RUN_NAME, 0, winreg.REG_SZ, login_command())
             return
