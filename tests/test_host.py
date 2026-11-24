@@ -183,6 +183,9 @@ def test_osascript_errors_name_the_permission_to_grant(monkeypatch):
     refuse("execution error: Not authorized to send Apple events to System Events. (-1743)")
     with pytest.raises(ToolError, match="Automation"):
         mac.osascript("x")
+    refuse("execution error: System Events got an error: Can't get button 1 of window 1. Invalid index. (-1719)")
+    with pytest.raises(ToolError, match="refused"):  # same number as the old permission error, different cause
+        mac.osascript("x")
     refuse("syntax error: something else (-2741)")
     with pytest.raises(ToolError, match="refused"):
         mac.osascript("x")

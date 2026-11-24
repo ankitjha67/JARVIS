@@ -60,7 +60,8 @@ def osascript(script: str, *args: str, jxa: bool = False, timeout: float = 20) -
     if done.returncode != 0:
         err = (done.stderr or "").strip()
         low = err.lower()
-        if "assistive access" in low or "-1719" in low or "-25211" in low or "not allowed to send keystrokes" in low:
+        # Matched on the wording: older systems reuse -1719 ("invalid index") for the permission error.
+        if "assistive access" in low or "-25211" in low or "not allowed to send keystrokes" in low:
             raise ToolError(ACCESSIBILITY_HELP)
         if "-1743" in low or "not authorized to send apple events" in low or "not authorised" in low:
             raise ToolError(AUTOMATION_HELP)
@@ -311,9 +312,17 @@ on run argv
     else if theAction is "restore" then
       set value of attribute "AXMinimized" of w to false
     else if theAction is "maximize" then
-      click (first button of w whose subrole is "AXZoomButton")
+      try
+        click (value of attribute "AXZoomButton" of w)
+      on error
+        click (first button of w whose subrole is "AXZoomButton")
+      end try
     else if theAction is "close" then
-      click (first button of w whose subrole is "AXCloseButton")
+      try
+        click (value of attribute "AXCloseButton" of w)
+      on error
+        click (first button of w whose subrole is "AXCloseButton")
+      end try
     end if
   end tell
   return "ok"
